@@ -1,0 +1,71 @@
+{
+  "registryVersion": "1.0",
+  "brandVersion": "1.0.0",
+  "identity": {
+    "brandName": "Swisschart",
+    "abbreviation": { "status": "TODO", "value": null },
+    "slogans": [],
+    "slogansStatus": "TODO",
+    "descriptions": {
+      "company": "Swisschart is a long-term investment company.",
+      "vision": "Swisschart is being built to become one of the world's most trusted investment companies."
+    }
+  },
+  "visualIdentity": {
+    "colors": { "status": "TODO", "values": [] },
+    "typography": { "status": "TODO", "values": [] },
+    "logoAssetId": { "status": "TODO", "value": null },
+    "iconAssetId": { "status": "TODO", "value": null },
+    "watermarkAssetId": { "status": "TODO", "value": null }
+  },
+  "communicationIdentity": {
+    "toneRules": [
+      { "ruleId": "communication.accuracy", "value": "Accuracy" },
+      { "ruleId": "communication.transparency", "value": "Transparency" },
+      { "ruleId": "communication.professionalism", "value": "Professionalism" },
+      { "ruleId": "communication.long_term_trust", "value": "Long-term trust" }
+    ],
+    "writingRules": [
+      { "ruleId": "communication.no_misleading_content", "value": "Misleading communication is not acceptable." }
+    ],
+    "formattingRules": [
+      { "ruleId": "formatting.telegram_footer_centralized", "value": "Swisschart Telegram Footer must be applied centrally; individual workflows must not add it." }
+    ],
+    "ctaDefinitions": [
+      { "ctaId": "swisschart.links", "label": "Swisschart Links", "reference": "https://linktr.ee/swisschart" }
+    ],
+    "footerDefinitions": [
+      { "footerId": "telegram.primary", "format": "html", "value": "<a href=\"https://linktr.ee/swisschart\">Swisschart Links</a>", "application": "centralized" }
+    ],
+    "sloganUsageRules": { "status": "TODO", "values": [] }
+  },
+  "platformProfiles": [
+    {
+      "platform": "telegram",
+      "contentType": "text",
+      "profileVersion": "1.0.0",
+      "footerId": "telegram.primary",
+      "toneRuleIds": [
+        "communication.accuracy",
+        "communication.transparency",
+        "communication.professionalism",
+        "communication.long_term_trust"
+      ],
+      "writingRuleIds": ["communication.no_misleading_content"],
+      "formattingRuleIds": ["formatting.telegram_footer_centralized"],
+      "ctaIds": ["swisschart.links"]
+    }
+  ],
+  "assets": [],
+  "assetSchema": {
+    "required": ["assetId", "type", "reference", "version", "metadata"],
+    "binaryStorage": "external_reference_only"
+  },
+  "accessControl": {
+    "read": ["assistant", "authorized_capability"],
+    "proposeChange": ["assistant", "admin_workflow"],
+    "write": ["founder_authorized"],
+    "approve": ["founder_authorized"],
+    "autonomousAgentMutation": false
+  }
+}

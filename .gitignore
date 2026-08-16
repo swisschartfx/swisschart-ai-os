@@ -1,0 +1,42 @@
+# Credentials and local environment
+.env
+.env.*
+!.env.example
+*.local
+
+# Installed dependencies
+**/node_modules/
+
+# Runtime and persistent state
+/06_Data/Automation/automations.json
+**/oauth-state*.json
+**/oauth_state*.json
+**/signal-actions*.json
+**/telegram-publish-actions*.json
+**/prepared-actions*.json
+
+# Deployment/editor-local state
+.railway/
+.vscode/
+.idea/
+*.code-workspace
+
+# Archives and backups under review
+*.zip
+!00_PROJECT_BRAIN.zip
+09_Backup/
+99_Archive/
+
+# Logs, caches, coverage, and temporary output
+npm-debug.log*
+*.log
+*.tmp
+*.temp
+coverage/
+.nyc_output/
+.cache/
+.eslintcache
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db

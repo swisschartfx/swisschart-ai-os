@@ -1,0 +1,12 @@
+{
+  "name": "swisschart-publishing-agent",
+  "version": "1.0.0",
+  "description": "Swisschart Publishing Agent",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

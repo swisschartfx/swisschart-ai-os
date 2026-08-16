@@ -1,0 +1,43 @@
+{
+  "timezone": "America/New_York",
+  "telegram": {
+    "content": {
+      "morningMessage": {
+        "enabled": true,
+        "time": "07:00"
+      },
+      "londonOpen": {
+        "enabled": true,
+        "time": "03:00"
+      },
+      "newYorkOpen": {
+        "enabled": true,
+        "time": "08:30"
+      },
+      "londonClose": {
+        "enabled": true,
+        "time": "12:00"
+      },
+      "newYorkClose": {
+        "enabled": true,
+        "time": "17:00"
+      }
+    }
+  },
+  "calendar": {
+    "enabled": true,
+    "provider": "forexfactory",
+    "highImpactNews": {
+      "enabled": true
+    },
+    "fiveMinuteAlert": {
+      "enabled": true
+    },
+    "releaseAlert": {
+      "enabled": true
+    },
+    "marketHolidayAlerts": {
+      "enabled": true
+    }
+  }
+}
