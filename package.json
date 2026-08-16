@@ -14,7 +14,7 @@
     "test:cloud": "npm run test:period && node 02_Core/Signals/testTradeIdContract.js && node 01_Core/Cloud/testOAuthBridge.js && node 01_Core/Cloud/testNotionTradeSequenceMigration.js && node 01_Core/Cloud/testConversationalSignalIntake.js && node 01_Core/Cloud/testSignalMutation.js && node 01_Core/Cloud/testTelegramSignalPublishing.js && node 01_Core/Cloud/testCloudRuntime.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.13.0"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
