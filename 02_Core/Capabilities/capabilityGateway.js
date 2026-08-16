@@ -1,5 +1,6 @@
 const {
     CAPABILITY_BEHAVIORS,
+    OPERATION_ACCESS,
     RESULT_STATUSES,
     validateCapabilityDeclaration,
     validateCapabilityRequest,
@@ -63,6 +64,23 @@ class CapabilityGateway {
             });
         }
 
+        const operationPolicy = declaration.operationPolicies[request.operation];
+        if (!operationPolicy || !Object.values(OPERATION_ACCESS)
+            .includes(operationPolicy.access)) {
+            return this.createError(request, {
+                code: "CAPABILITY_OPERATION_POLICY_INVALID",
+                type: "authorization_error",
+                message: "Capability operation authority policy is invalid",
+                retryable: false
+            });
+        }
+        if (operationPolicy.access === OPERATION_ACCESS.MUTATION) {
+            const authorityError = validateMutationAuthority(
+                request, operationPolicy.mutationPolicy
+            );
+            if (authorityError) return this.createError(request, authorityError);
+        }
+
         if (typeof adapter.execute !== "function") {
             return this.createError(request, {
                 code: "CAPABILITY_EXECUTOR_UNAVAILABLE",
@@ -96,6 +114,7 @@ class CapabilityGateway {
                 timestamps: { startedAt, completedAt },
                 executionMetadata: {
                     behavior: declaration.behavior,
+                    operationAccess: operationPolicy.access,
                     executionMode: declaration.executionMode,
                     ...(output && output.executionMetadata || {})
                 },
@@ -125,6 +144,33 @@ class CapabilityGateway {
                 : "unknown"
         });
     }
+}
+
+function validateMutationAuthority(request, policy) {
+    if (!policy || policy.approvalRequired !== true ||
+        typeof policy.payloadBindingRequired !== "boolean" ||
+        typeof policy.idempotencyRequired !== "boolean") {
+        return { code: "CAPABILITY_MUTATION_POLICY_INVALID", type: "authorization_error",
+            message: "Mutation authority policy is invalid", retryable: false };
+    }
+    if (request.constraints.approvedMutation !== true ||
+        request.context.approvalVerified !== true) {
+        return { code: "CAPABILITY_MUTATION_AUTHORITY_REQUIRED", type: "authorization_error",
+            message: "Approved mutation authority is required", retryable: false };
+    }
+    if (policy.payloadBindingRequired &&
+        (typeof request.context.payloadHash !== "string" ||
+            !request.context.payloadHash.trim())) {
+        return { code: "CAPABILITY_MUTATION_PAYLOAD_BINDING_REQUIRED", type: "authorization_error",
+            message: "Mutation payload binding is required", retryable: false };
+    }
+    if (policy.idempotencyRequired &&
+        (typeof request.context.idempotencyKey !== "string" ||
+            !request.context.idempotencyKey.trim())) {
+        return { code: "CAPABILITY_MUTATION_IDEMPOTENCY_REQUIRED", type: "authorization_error",
+            message: "Mutation idempotency authority is required", retryable: false };
+    }
+    return null;
 }
 
 module.exports = CapabilityGateway;

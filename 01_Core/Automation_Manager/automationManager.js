@@ -1,4 +1,4 @@
-const AutomationStore = require("./automationStore");
+const LegacyJsonAutomationStore = require("./legacyJsonAutomationStore");
 const { randomUUID } = require("crypto");
 const { Temporal } = require("@js-temporal/polyfill");
 const {
@@ -13,7 +13,7 @@ class AutomationManager {
     constructor(options = {}) {
         this.automationStore = options.automationStore === null
             ? null
-            : options.automationStore || new AutomationStore();
+            : options.automationStore || new LegacyJsonAutomationStore();
         const storedAutomations = this.automationStore
             ? this.automationStore.load()
             : [];

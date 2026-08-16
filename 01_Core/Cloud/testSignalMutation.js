@@ -36,7 +36,7 @@ async function run() {
     const capability = new NotionSignalCapability({ databaseId: "db", service, clock });
     const gateway = new CapabilityGateway({ registry: new CapabilityRegistry([capability]), clock });
     const unauthorized = await gateway.execute(request(signal, {}));
-    assert.strictEqual(unauthorized.code, "CAPABILITY_EXECUTION_FAILED"); assert.strictEqual(pages, 0);
+    assert.strictEqual(unauthorized.code, "CAPABILITY_MUTATION_AUTHORITY_REQUIRED"); assert.strictEqual(pages, 0);
     const authorized = await gateway.execute(request(signal, { approvalVerified: true, payloadHash: prepared.payloadHash, idempotencyKey: prepared.payloadHash }));
     assert.strictEqual(authorized.status, "completed"); assert.strictEqual(pages, 1);
     assert.strictEqual(authorized.data.tradeId, "SCT-2647");
@@ -51,5 +51,5 @@ async function run() {
 }
 function validSignal() { return { pair: "EURUSD", direction: "buy", entry: 1.1, stopLoss: 1.09, tp1: 1.11, tp2: 1.12, tp3: 1.13, risk: 0.5, grade: 3 }; }
 function record(id) { return { properties: { "Trade ID": { title: [{ plain_text: id }] } } }; }
-function request(draft, context) { return createCapabilityRequest({ requestId: "signal-test", capability: "signal.notion", operation: "signal.notion.create", input: { draft }, context, constraints: {}, metadata: {}, requestedBy: "founder", source: "test", inputContractVersion: "1.0" }, { clock: () => new Date("2026-08-14T16:00:00.000Z") }); }
+function request(draft, context) { return createCapabilityRequest({ requestId: "signal-test", capability: "signal.notion", operation: "signal.notion.create", input: { draft }, context, constraints: { approvedMutation: context.approvalVerified === true }, metadata: {}, requestedBy: "founder", source: "test", inputContractVersion: "1.0" }, { clock: () => new Date("2026-08-14T16:00:00.000Z") }); }
 run().catch((error) => { console.error(error); process.exitCode = 1; });

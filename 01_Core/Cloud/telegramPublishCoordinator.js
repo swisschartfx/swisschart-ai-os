@@ -16,7 +16,7 @@ class TelegramPublishCoordinator {
         const hash = crypto.createHash("sha256").update(stable(payload)).digest("hex");
         const existing = [...this.actions.values()].find((a) => a.payloadHash === hash);
         if (existing) return expose(existing);
-        const action = { actionId: `telegram-${crypto.randomUUID()}`, status: "pending_approval", payloadHash: hash, idempotencyKey: hash, ...payload, messages: [{ role: "risk_management", content: payload.riskManagementMessage, status: "pending", messageId: null }, { role: "signal", content: payload.signalMessage, status: "pending", messageId: null }], createdAt: this.clock().toISOString(), result: null };
+        const action = { actionId: `telegram-${crypto.randomUUID()}`, status: "pending_approval", payloadHash: hash, idempotencyKey: hash, ...payload, messages: [{ role: "risk_management", content: payload.riskManagementMessage, status: "pending", deliveryCertainty: null, messageId: null }, { role: "signal", content: payload.signalMessage, status: "pending", deliveryCertainty: null, messageId: null }], createdAt: this.clock().toISOString(), result: null };
         this.actions.set(action.actionId, action); this.persist(); return expose(action);
     }
     async approve(input, requestId) {
@@ -39,19 +39,46 @@ class TelegramPublishCoordinator {
             message.status = "sending"; message.attemptedAt = this.clock().toISOString(); this.persist();
             try {
                 const result = await this.assistant.handle({ type: "capability", requestId, capability: "signal.telegram", operation: "signal.telegram.publish", input: { signalReference: action.signalReference, renderedMessage: message.content, messageRole: message.role }, context: { approvalVerified: true, payloadHash: action.payloadHash, idempotencyKey: `${action.idempotencyKey}:${message.role}`, destinationId: action.destination.chatId }, constraints: { approvedMutation: true }, metadata: { transport: "remote_mcp", bundleActionId: action.actionId }, requestedBy: "founder", source: "claude-remote-mcp", inputContractVersion: "1.0" });
-                if (!result || result.status !== "completed") throw coded("TELEGRAM_EXECUTION_FAILED");
-                message.status = "completed"; message.messageId = result.data.messageId; message.completedAt = this.clock().toISOString(); this.persist();
+                if (!result || result.status !== "completed") throw capabilityFailure(result);
+                message.status = "completed"; message.deliveryCertainty = "CONFIRMED_SENT"; message.messageId = result.data.messageId; message.completedAt = this.clock().toISOString(); this.persist();
             } catch (error) {
-                message.status = "failed"; message.failureCode = error.code || "TELEGRAM_EXECUTION_FAILED";
-                action.status = action.messages.some((item) => item.status === "completed") ? "partial_failed" : "failed"; this.persist(); throw coded("TELEGRAM_BUNDLE_EXECUTION_INCOMPLETE");
+                message.failureCode = error.code || "TELEGRAM_EXECUTION_FAILED";
+                if (error.deliveryCertainty === "DEFINITE_NOT_SENT") {
+                    message.status = "failed";
+                    message.deliveryCertainty = "DEFINITE_NOT_SENT";
+                    action.status = action.messages.some((item) => item.status === "completed") ? "partial_failed" : "failed";
+                    this.persist();
+                    throw coded("TELEGRAM_BUNDLE_EXECUTION_INCOMPLETE");
+                }
+                message.status = "delivery_uncertain";
+                message.deliveryCertainty = "DELIVERY_UNCERTAIN";
+                message.uncertainAt = this.clock().toISOString();
+                action.status = "held_for_review";
+                this.persist();
+                throw coded("TELEGRAM_DELIVERY_REQUIRES_REVIEW");
             }
         }
         action.status = "completed"; action.executedAt = this.clock().toISOString(); action.result = { status: "completed", riskManagementMessageId: action.messages[0].messageId, signalMessageId: action.messages[1].messageId, signalReference: action.signalReference }; this.persist(); return { ...expose(action), replayed: false };
     }
     persist() { this.store.save([...this.actions.values()]); }
 }
-function expose(a) { return { approvalId: a.actionId, status: a.status, payloadHash: a.payloadHash, signalReference: a.signalReference, destination: "Swisschart primary Telegram channel", riskManagementMessage: a.riskManagementMessage, signalMessage: a.signalMessage, sendOrder: ["risk_management", "signal"], messageStates: (a.messages || []).map((message) => ({ role: message.role, status: message.status, messageId: message.messageId || undefined })), result: a.result || undefined, approvalRequired: a.status === "pending_approval" }; }
-function recover(action, now) { if (!Array.isArray(action.messages)) return action; return { ...action, messages: action.messages.map((message) => message.status === "sending" ? { ...message, status: "delivery_uncertain", uncertainAt: now.toISOString() } : message), status: action.messages.some((message) => message.status === "sending") ? "held_for_review" : action.status }; }
+function expose(a) { return { approvalId: a.actionId, status: a.status, payloadHash: a.payloadHash, signalReference: a.signalReference, destination: "Swisschart primary Telegram channel", riskManagementMessage: a.riskManagementMessage, signalMessage: a.signalMessage, sendOrder: ["risk_management", "signal"], messageStates: (a.messages || []).map((message) => ({ role: message.role, status: message.status, deliveryCertainty: message.deliveryCertainty || undefined, messageId: message.messageId || undefined })), result: a.result || undefined, approvalRequired: a.status === "pending_approval" }; }
+function recover(action, now) { if (!Array.isArray(action.messages)) return action; return { ...action, messages: action.messages.map((message) => message.status === "sending" ? { ...message, status: "delivery_uncertain", deliveryCertainty: "DELIVERY_UNCERTAIN", uncertainAt: now.toISOString() } : message), status: action.messages.some((message) => message.status === "sending") ? "held_for_review" : action.status }; }
 function stable(v) { if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`; if (v && typeof v === "object") return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable(v[k])}`).join(",")}}`; return JSON.stringify(v); }
-function coded(code) { const e = new Error(code); e.code = code; return e; }
+function capabilityFailure(result) {
+    const cause = result && result.internalCauseReference;
+    const definitelyNotSent = new Set([
+        "TELEGRAM_APPROVAL_REQUIRED",
+        "TELEGRAM_PUBLISHER_UNAVAILABLE",
+        "TELEGRAM_MESSAGE_ROLE_INVALID",
+        "TELEGRAM_SIGNAL_REFERENCE_NOT_FOUND",
+        "TELEGRAM_PROVIDER_REJECTED",
+        "TELEGRAM_LOCAL_VALIDATION_FAILED"
+    ]);
+    return coded(
+        cause || "TELEGRAM_EXECUTION_FAILED",
+        definitelyNotSent.has(cause) ? "DEFINITE_NOT_SENT" : undefined
+    );
+}
+function coded(code, deliveryCertainty) { const e = new Error(code); e.code = code; if (deliveryCertainty) e.deliveryCertainty = deliveryCertainty; return e; }
 module.exports = TelegramPublishCoordinator;

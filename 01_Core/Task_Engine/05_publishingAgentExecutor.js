@@ -1,5 +1,5 @@
 function createDefaultPublisher() {
-    const PublishingAgentClass = require("../../02_Agents/02_Publishing_Agent/index02");
+    const PublishingAgentClass = require("../../02_Agents/02_Publishing_Agent/publishingAgent");
     return new PublishingAgentClass();
 }
 

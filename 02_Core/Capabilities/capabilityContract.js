@@ -17,6 +17,12 @@ const APPROVAL_REQUIREMENTS = Object.freeze({
     REQUIRED: "required"
 });
 
+const OPERATION_ACCESS = Object.freeze({
+    READ: "read",
+    MUTATION: "mutation",
+    INTERNAL: "internal"
+});
+
 const LIFECYCLE_STAGES = Object.freeze({
     COLLECT: "collect",
     STORE: "store",
@@ -42,6 +48,8 @@ function createCapabilityDeclaration(data) {
         executionMode: data && data.executionMode,
         behavior: data && data.behavior,
         approvalRequirement: data && data.approvalRequirement,
+        operationPolicies: data && data.operationPolicies ||
+            defaultReadPolicies(data),
         lifecycleSupport: data && data.lifecycleSupport,
         inputContractVersion: data && data.inputContractVersion,
         outputContractVersion: data && data.outputContractVersion
@@ -77,6 +85,8 @@ function validateCapabilityDeclaration(declaration) {
         errors.push(error("CAPABILITY_APPROVAL_INVALID", "approvalRequirement", "approvalRequirement is not supported"));
     }
 
+    validateOperationPolicies(declaration, errors);
+
     requireStringArray(declaration, "lifecycleSupport", errors, true);
     if (Array.isArray(declaration.lifecycleSupport)) {
         declaration.lifecycleSupport.forEach((stage) => {
@@ -87,6 +97,55 @@ function validateCapabilityDeclaration(declaration) {
     }
 
     return validation(errors);
+}
+
+function defaultReadPolicies(data) {
+    if (!data || data.behavior !== CAPABILITY_BEHAVIORS.READ_ONLY ||
+        !Array.isArray(data.supportedOperations)) return undefined;
+    return Object.fromEntries(data.supportedOperations.map(operation => [
+        operation, { access: OPERATION_ACCESS.READ }
+    ]));
+}
+
+function validateOperationPolicies(declaration, errors) {
+    if (!isPlainObject(declaration.operationPolicies)) {
+        errors.push(error("CAPABILITY_OPERATION_POLICIES_REQUIRED",
+            "operationPolicies", "operationPolicies must explicitly classify operations"));
+        return;
+    }
+    const operations = Array.isArray(declaration.supportedOperations)
+        ? declaration.supportedOperations : [];
+    const policyKeys = Object.keys(declaration.operationPolicies);
+    if (policyKeys.some(operation => !operations.includes(operation))) {
+        errors.push(error("CAPABILITY_OPERATION_POLICY_UNKNOWN",
+            "operationPolicies", "operationPolicies contains an unsupported operation"));
+    }
+    for (const operation of operations) {
+        const policy = declaration.operationPolicies[operation];
+        if (!isPlainObject(policy) ||
+            !Object.values(OPERATION_ACCESS).includes(policy.access)) {
+            errors.push(error("CAPABILITY_OPERATION_POLICY_INVALID",
+                `operationPolicies.${operation}`, "operation access policy is invalid"));
+            continue;
+        }
+        if (declaration.behavior === CAPABILITY_BEHAVIORS.READ_ONLY &&
+            policy.access !== OPERATION_ACCESS.READ) {
+            errors.push(error("CAPABILITY_READ_POLICY_CONTRADICTORY",
+                `operationPolicies.${operation}`, "read-only capability operations must be read"));
+        }
+        if (policy.access === OPERATION_ACCESS.MUTATION) {
+            const mutation = policy.mutationPolicy;
+            if (!isPlainObject(mutation) ||
+                ["approvalRequired", "payloadBindingRequired", "idempotencyRequired"]
+                    .some(field => typeof mutation[field] !== "boolean") ||
+                mutation.approvalRequired !== true ||
+                declaration.approvalRequirement !== APPROVAL_REQUIREMENTS.REQUIRED) {
+                errors.push(error("CAPABILITY_MUTATION_POLICY_INVALID",
+                    `operationPolicies.${operation}.mutationPolicy`,
+                    "governed mutations require explicit approval, payload-binding, and idempotency policy booleans"));
+            }
+        }
+    }
 }
 
 function createCapabilityRequest(data, options = {}) {
@@ -259,6 +318,7 @@ module.exports = {
     EXECUTION_MODES,
     CAPABILITY_BEHAVIORS,
     APPROVAL_REQUIREMENTS,
+    OPERATION_ACCESS,
     LIFECYCLE_STAGES,
     RESULT_STATUSES,
     createCapabilityDeclaration,

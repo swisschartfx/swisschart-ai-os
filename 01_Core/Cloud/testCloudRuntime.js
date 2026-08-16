@@ -5,7 +5,7 @@ const { loadCloudConfig } = require("./cloudConfig");
 const { McpEdge, normalizeBusinessQuery } = require("./mcpEdge");
 const { createHttpServer } = require("./httpServer");
 const ProductionRuntime = require("./productionRuntime");
-const { createReadOnlyComposition } = require("./readOnlyComposition");
+const { createCloudComposition } = require("./cloudComposition");
 const TradingDataCapability = require("../../02_Core/Capabilities/tradingDataCapability");
 const { PeriodResolver, PRESETS } = require("../../02_Core/Time/periodContract");
 
@@ -235,7 +235,7 @@ async function testExistingAssistantAndCapabilities() {
             }
         }
     });
-    const composition = createReadOnlyComposition({ tradingDataCapability });
+    const composition = createCloudComposition({ tradingDataCapability });
     composition.assistant.requestUnderstanding = {
         async understand() { understandingCalls += 1; throw new Error("must bypass"); }
     };

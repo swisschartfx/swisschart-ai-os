@@ -12,15 +12,11 @@ class TelegramService {
             process.env.TELEGRAM_CHAT_ID;
 
         if (!this.botToken) {
-            throw new Error(
-                "TELEGRAM_BOT_TOKEN is missing"
-            );
+            throw definiteNotSent("TELEGRAM_BOT_TOKEN is missing");
         }
 
         if (!this.chatId) {
-            throw new Error(
-                "TELEGRAM_CHAT_ID is missing"
-            );
+            throw definiteNotSent("TELEGRAM_CHAT_ID is missing");
         }
 
         this.baseUrl =
@@ -47,9 +43,9 @@ class TelegramService {
             await response.json();
 
         if (!data.ok) {
-
-            throw new Error(
-                `Telegram API Error: ${data.description}`
+            throw definiteNotSent(
+                `Telegram API Error: ${data.description}`,
+                "TELEGRAM_PROVIDER_REJECTED"
             );
         }
 
@@ -82,10 +78,7 @@ class TelegramService {
         );
 
         if (!photo) {
-
-            throw new Error(
-                "Photo path is missing"
-            );
+            throw definiteNotSent("Photo path is missing");
         }
 
 
@@ -146,9 +139,9 @@ class TelegramService {
 
 
             if (!data.ok) {
-
-                throw new Error(
-                    `Telegram API Error: ${data.description}`
+                throw definiteNotSent(
+                    `Telegram API Error: ${data.description}`,
+                    "TELEGRAM_PROVIDER_REJECTED"
                 );
             }
 
@@ -168,6 +161,13 @@ class TelegramService {
             }
         );
     }
+}
+
+function definiteNotSent(message, code = "TELEGRAM_LOCAL_VALIDATION_FAILED") {
+    const error = new Error(message);
+    error.code = code;
+    error.deliveryCertainty = "DEFINITE_NOT_SENT";
+    return error;
 }
 
 

@@ -26,18 +26,27 @@ function declaration(capabilityId, behavior, operations = ["read"]) {
             ? [LIFECYCLE_STAGES.ACT]
             : [LIFECYCLE_STAGES.COLLECT],
         inputContractVersion: "1.0",
-        outputContractVersion: "1.1"
+        outputContractVersion: "1.1",
+        ...(behavior === CAPABILITY_BEHAVIORS.MUTATING ? {
+            operationPolicies: Object.fromEntries(operations.map(operation => [
+                operation, { access: "mutation", mutationPolicy: {
+                    approvalRequired: true,
+                    payloadBindingRequired: true,
+                    idempotencyRequired: true
+                } }
+            ]))
+        } : {})
     });
 }
 
-function request(capability, operation) {
+function request(capability, operation, authority = {}) {
     return createCapabilityRequest({
         requestId: `request-${capability}-${operation}`,
         capability,
         operation,
         input: { value: 1 },
-        context: {},
-        constraints: {},
+        context: authority.context || {},
+        constraints: authority.constraints || {},
         metadata: {},
         requestedBy: "gateway-test",
         source: "unit-test",
@@ -109,11 +118,40 @@ async function run() {
     assert.strictEqual(readExecutionContext.readOnly, true);
     assert.strictEqual(readExecutionContext.mutating, false);
 
-    const mutationResult = await gateway.execute(request("test.writer", "write"));
+    const unauthorized = await gateway.execute(request("test.writer", "write"));
+    assert.strictEqual(unauthorized.code, "CAPABILITY_MUTATION_AUTHORITY_REQUIRED");
+    assert.strictEqual(mutationExecutionContext, undefined);
+
+    const incomplete = await gateway.execute(request("test.writer", "write", {
+        context: { approvalVerified: true },
+        constraints: { approvedMutation: true }
+    }));
+    assert.strictEqual(incomplete.code,
+        "CAPABILITY_MUTATION_PAYLOAD_BINDING_REQUIRED");
+
+    const missingIdempotency = await gateway.execute(request("test.writer", "write", {
+        context: { approvalVerified: true, payloadHash: "payload-hash" },
+        constraints: { approvedMutation: true }
+    }));
+    assert.strictEqual(missingIdempotency.code,
+        "CAPABILITY_MUTATION_IDEMPOTENCY_REQUIRED");
+
+    const mutationResult = await gateway.execute(request("test.writer", "write", {
+        context: { approvalVerified: true, payloadHash: "payload-hash",
+            idempotencyKey: "mutation-1" },
+        constraints: { approvedMutation: true }
+    }));
     assert.strictEqual(mutationResult.data.saved, true);
     assert.strictEqual(mutationResult.executionMetadata.behavior, "mutating");
     assert.strictEqual(mutationExecutionContext.readOnly, false);
     assert.strictEqual(mutationExecutionContext.mutating, true);
+
+    const invalidPolicy = { ...declaration("test.invalid", CAPABILITY_BEHAVIORS.MUTATING,
+        ["write"]), operationPolicies: { write: { access: "unknown" } } };
+    registry.register({ name: "test.invalid", declaration: invalidPolicy,
+        execute() { throw new Error("must not execute"); } });
+    const invalidPolicyResult = await gateway.execute(request("test.invalid", "write"));
+    assert.strictEqual(invalidPolicyResult.code, "CAPABILITY_DECLARATION_INVALID");
 
     const unsupported = await gateway.execute(request("test.reader", "write"));
     assert.strictEqual(unsupported.code, "CAPABILITY_OPERATION_UNSUPPORTED");

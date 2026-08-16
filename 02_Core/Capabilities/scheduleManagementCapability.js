@@ -12,6 +12,7 @@ class ScheduleManagementCapability {
         this.name = "schedule.management"; this.automationManager = options.automationManager;
         this.declaration = createCapabilityDeclaration({ capabilityId: this.name,
             domain: "automation", version: "1.0.0", supportedOperations: Object.values(OPERATIONS),
+            operationPolicies: scheduleOperationPolicies(),
             executionMode: EXECUTION_MODES.SYNCHRONOUS, behavior: CAPABILITY_BEHAVIORS.MUTATING,
             approvalRequirement: APPROVAL_REQUIREMENTS.REQUIRED,
             lifecycleSupport: [LIFECYCLE_STAGES.STORE, LIFECYCLE_STAGES.ACT],
@@ -36,6 +37,21 @@ class ScheduleManagementCapability {
             recordCount: Array.isArray(data.schedules) ? data.schedules.length : undefined,
             executionMetadata: { schedulerActivated: false } };
     }
+}
+function scheduleOperationPolicies() {
+    const governed = () => ({ access: "mutation", mutationPolicy: {
+        approvalRequired: true, payloadBindingRequired: true,
+        idempotencyRequired: true } });
+    return {
+        [OPERATIONS.LIST]: { access: "read" },
+        [OPERATIONS.INSPECT]: { access: "read" },
+        [OPERATIONS.CREATE_PREPARE]: { access: "internal" },
+        [OPERATIONS.UPDATE_PREPARE]: { access: "internal" },
+        [OPERATIONS.DELETE_PREPARE]: { access: "internal" },
+        [OPERATIONS.CREATE_APPROVE]: governed(),
+        [OPERATIONS.UPDATE_APPROVE]: governed(),
+        [OPERATIONS.DELETE_APPROVE]: governed()
+    };
 }
 module.exports = ScheduleManagementCapability;
 module.exports.OPERATIONS = OPERATIONS;

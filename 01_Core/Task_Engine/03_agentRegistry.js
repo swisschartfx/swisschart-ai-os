@@ -34,7 +34,7 @@ const AGENT_REGISTRY = Object.freeze([
         riskLevel: "medium",
         dataAccess: ["approved_publication_content"],
         externalEffects: ["telegram_message_publish"],
-        policyReferences: ["00_PROJECT_BRAIN/04_RULES.md"],
+        policyReferences: ["00_PROJECT_BRAIN/02_ARCHITECTURE.md"],
         dependencies: ["telegram-service"],
         executionMode: "synchronous",
         timeoutPolicy: "No automatic retry in v1",

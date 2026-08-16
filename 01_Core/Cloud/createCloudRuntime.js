@@ -1,6 +1,6 @@
 const { loadCloudConfig } = require("./cloudConfig");
 const { createStructuredLogger } = require("./structuredLogger");
-const { createReadOnlyComposition } = require("./readOnlyComposition");
+const { createCloudComposition } = require("./cloudComposition");
 const { McpEdge } = require("./mcpEdge");
 const { createHttpServer } = require("./httpServer");
 const ProductionRuntime = require("./productionRuntime");
@@ -9,7 +9,7 @@ const OAuthStateStore = require("./oauthStateStore");
 const SignalActionStore = require("./signalActionStore");
 const SignalMutationCoordinator = require("./signalMutationCoordinator");
 const TelegramPublishCoordinator = require("./telegramPublishCoordinator");
-const PublishingAgent = require("../../02_Agents/02_Publishing_Agent/index02");
+const PublishingAgent = require("../../02_Agents/02_Publishing_Agent/publishingAgent");
 const path = require("path");
 
 function createCloudRuntime(options = {}) {
@@ -17,7 +17,7 @@ function createCloudRuntime(options = {}) {
     const config = options.config || loadCloudConfig(environment);
     const logger = options.logger || createStructuredLogger();
     const publisher = options.publisher || new PublishingAgent();
-    const composition = options.composition || createReadOnlyComposition({ enableSignalMutation: true, enableTelegramSignal: true, publisher });
+    const composition = options.composition || createCloudComposition({ enableSignalMutation: true, enableTelegramSignal: true, publisher, scheduleDatabasePath: options.scheduleDatabasePath });
     const oauthStateStore = options.oauthStateStore || new OAuthStateStore({
         filePath: config.oauthStateFile
     });

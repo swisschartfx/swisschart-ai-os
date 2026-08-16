@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const TRIGGER_TYPES = Object.freeze(["local_time", "session_relative"]);
 const OCCURRENCE_STATES = Object.freeze([
     "planned", "claimed", "publishing", "completed",
-    "failed_safe_to_retry", "delivery_uncertain", "skipped",
+    "failed_safe_to_retry", "delivery_uncertain", "held", "skipped",
     "suppressed", "cancelled"
 ]);
 const DISPLAY_TIMEZONE = "America/New_York";

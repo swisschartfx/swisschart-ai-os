@@ -1,36 +1,8 @@
-const path = require("path");
-
-const dotenv = require(
-    path.join(
-        __dirname,
-        "../02_Agents/01_Journal_Agent/node_modules/dotenv"
-    )
-);
-
-dotenv.config({
-    path: path.join(
-        __dirname,
-        "../02_Agents/01_Journal_Agent/.env"
-    ),
-    override: true
-});
-
 const { createSignal } =
     require("./signalWorkflow");
 
 const { createRiskReminder } =
     require("./riskReminder");
-
-const JournalAgent =
-    require(
-        "../02_Agents/01_Journal_Agent/agents/journalAgent"
-    );
-
-const PublishingAgent =
-    require(
-        "../02_Agents/02_Publishing_Agent/index02"
-    );
-
 
 function getNewYorkDateTime() {
 
@@ -87,6 +59,15 @@ function getNewYorkDateTime() {
 
 
 async function executeSignal(signalData) {
+
+    assertManualExternalAuthorization();
+
+    const JournalAgent = require(
+        "../02_Agents/01_Journal_Agent/agents/journalAgent"
+    );
+    const PublishingAgent = require(
+        "../02_Agents/02_Publishing_Agent/publishingAgent"
+    );
 
     console.log("================================");
     console.log("🚀 Swisschart Signal Execution");
@@ -244,6 +225,35 @@ async function executeSignal(signalData) {
 
 
     return signal;
+}
+
+
+function assertManualExternalAuthorization() {
+
+    const required = [
+        "SWISSCHART_ALLOW_REAL_EXTERNAL_ACTIONS",
+        "SWISSCHART_CONFIRM_TELEGRAM_SEND",
+        "SWISSCHART_CONFIRM_NOTION_WRITE"
+    ];
+
+    const missing = required.filter(
+        name => process.env[name] !== "true"
+    );
+
+    if (
+        process.env.SWISSCHART_EXTERNAL_TARGET !== "production" ||
+        missing.length > 0
+    ) {
+        const error = new Error(
+            "Legacy signal execution is manual-only and requires explicit production target plus Telegram and Notion confirmations"
+        );
+        error.code = "LEGACY_SIGNAL_MANUAL_AUTHORIZATION_REQUIRED";
+        throw error;
+    }
+
+    console.warn(
+        "WARNING: MANUAL EXTERNAL ACTION AUTHORIZED: Telegram send + Notion write"
+    );
 }
 
 

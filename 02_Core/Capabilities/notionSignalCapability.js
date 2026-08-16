@@ -8,7 +8,7 @@ class NotionSignalCapability {
         this.databaseId = options.databaseId || process.env.NOTION_DATABASE_ID;
         this.clock = options.clock || (() => new Date());
         this.allocationQueue = Promise.resolve(); this.lastAllocatedByYear = new Map();
-        this.declaration = createCapabilityDeclaration({ capabilityId: this.name, domain: "trading", version: "1.0.0", supportedOperations: ["signal.notion.create"], executionMode: EXECUTION_MODES.SYNCHRONOUS, behavior: CAPABILITY_BEHAVIORS.MUTATING, approvalRequirement: APPROVAL_REQUIREMENTS.REQUIRED, lifecycleSupport: [LIFECYCLE_STAGES.STORE, LIFECYCLE_STAGES.ACT], inputContractVersion: "1.0", outputContractVersion: "1.0" });
+        this.declaration = createCapabilityDeclaration({ capabilityId: this.name, domain: "trading", version: "1.0.0", supportedOperations: ["signal.notion.create"], operationPolicies: { "signal.notion.create": governedMutation() }, executionMode: EXECUTION_MODES.SYNCHRONOUS, behavior: CAPABILITY_BEHAVIORS.MUTATING, approvalRequirement: APPROVAL_REQUIREMENTS.REQUIRED, lifecycleSupport: [LIFECYCLE_STAGES.STORE, LIFECYCLE_STAGES.ACT], inputContractVersion: "1.0", outputContractVersion: "1.0" });
     }
     async execute(request) {
         if (!request.context || request.context.approvalVerified !== true || !request.context.payloadHash || !request.context.idempotencyKey) { const e = new Error("Approval required"); e.code = "SIGNAL_APPROVAL_REQUIRED"; throw e; }
@@ -38,6 +38,7 @@ class NotionSignalCapability {
         return { data: { created: true, tradeId, pageId: page.id }, summary: "Approved signal created", evidence: [`notion_page:${page.id}`], sourceReferences: [page.id], recordCount: 1, executionMetadata: { idempotencyKey: request.context.idempotencyKey } };
     }
 }
+function governedMutation() { return { access: "mutation", mutationPolicy: { approvalRequired: true, payloadBindingRequired: true, idempotencyRequired: true } }; }
 function readTradeId(record) {
     const title = record && record.properties && record.properties["Trade ID"] && record.properties["Trade ID"].title;
     return title && title[0] && (title[0].plain_text || title[0].text && title[0].text.content) || null;

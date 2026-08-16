@@ -5,7 +5,7 @@ const SqliteAutomationStore = require("./sqliteAutomationStore");
 const ScheduleManagementCapability = require("../../02_Core/Capabilities/scheduleManagementCapability");
 const CapabilityRegistry = require("../../02_Core/Capabilities/capabilityRegistry");
 const CapabilityGateway = require("../../02_Core/Capabilities/capabilityGateway");
-const { createReadOnlyComposition } = require("../Cloud/readOnlyComposition");
+const { createCloudComposition } = require("../Cloud/cloudComposition");
 const { McpEdge } = require("../Cloud/mcpEdge");
 
 function candidate(id = "weekday-message", weekdays = [1,2,3,4,5]) {
@@ -85,14 +85,38 @@ const gateway = new CapabilityGateway({ registry: new CapabilityRegistry([capabi
         timestamp: "2026-08-16T12:00:00.000Z" });
     assert.strictEqual(result.status, "completed");
     assert.strictEqual(result.data.schedules.length, 1);
-    const composition = createReadOnlyComposition({ scheduleManagementCapability: capability });
+    const prepareViaGateway = await gateway.execute({ requestId: "schedule-prepare", capability: "schedule.management",
+        operation: "schedule.create.prepare", input: { schedule: candidate("gateway-created") },
+        context: {}, constraints: {}, metadata: {}, requestedBy: "founder", source: "test",
+        inputContractVersion: "1.0", timestamp: "2026-08-16T12:00:00.000Z" });
+    assert.strictEqual(prepareViaGateway.status, "completed");
+    const deniedApproval = await gateway.execute({ requestId: "schedule-denied", capability: "schedule.management",
+        operation: "schedule.create.approve", input: { approvalId: prepareViaGateway.data.approvalId,
+            payloadHash: prepareViaGateway.data.payloadHash, confirm: true }, context: {}, constraints: {},
+        metadata: {}, requestedBy: "founder", source: "test", inputContractVersion: "1.0",
+        timestamp: "2026-08-16T12:00:00.000Z" });
+    assert.strictEqual(deniedApproval.code, "CAPABILITY_MUTATION_AUTHORITY_REQUIRED");
+    const approvedViaGateway = await gateway.execute({ requestId: "schedule-approved", capability: "schedule.management",
+        operation: "schedule.create.approve", input: { approvalId: prepareViaGateway.data.approvalId,
+            payloadHash: prepareViaGateway.data.payloadHash, confirm: true }, context: { approvalVerified: true,
+            payloadHash: prepareViaGateway.data.payloadHash, idempotencyKey: prepareViaGateway.data.approvalId },
+        constraints: { approvedMutation: true }, metadata: {}, requestedBy: "founder", source: "test",
+        inputContractVersion: "1.0", timestamp: "2026-08-16T12:00:00.000Z" });
+    assert.strictEqual(approvedViaGateway.status, "completed");
+    const composition = createCloudComposition({ scheduleManagementCapability: capability });
     const edge = new McpEdge({ assistant: composition.assistant,
         bearerToken: "x".repeat(32) });
     const rpc = await edge.handleRpc({ jsonrpc: "2.0", id: 1, method: "tools/call",
         params: { name: "swisschart.query", arguments: { requestType: "schedule_list" } } },
     "mcp-schedule-list");
     assert.strictEqual(rpc.result.isError, false);
-    assert.strictEqual(JSON.parse(rpc.result.content[0].text).data.schedules.length, 1);
+    assert.strictEqual(JSON.parse(rpc.result.content[0].text).data.schedules.length, 2);
+    const localDb = path.join(dir, "composed.sqlite");
+    const localComposition = createCloudComposition({ scheduleDatabasePath: localDb,
+        tradingDataCapability: { name: "trading.data", declaration: require("../../02_Core/Capabilities/capabilityContract").createCapabilityDeclaration({ capabilityId: "trading.data", domain: "test", version: "1.0.0", supportedOperations: ["trading.performance.summary", "trading.records.query", "trading.schema.get", "trading.trade_reference.resolve"], executionMode: "synchronous", behavior: "read_only", approvalRequirement: "none", lifecycleSupport: ["collect"], inputContractVersion: "1.0", outputContractVersion: "1.0" }), async execute() { return { data: {}, summary: "mock" }; } } });
+    assert(localComposition.capabilityRegistry.has("schedule.management"));
+    assert.strictEqual(localComposition.schedulerRuntime, null);
+    localComposition.scheduleStore.close();
     store.close(); fs.rmSync(dir, { recursive: true, force: true });
     console.log("Schedule management, SQLite, approval, CRUD, replay, and Gateway tests passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

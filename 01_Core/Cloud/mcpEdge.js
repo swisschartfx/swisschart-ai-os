@@ -128,8 +128,10 @@ class McpEdge {
                     capability: "schedule.management",
                     operation: scheduleRequest.operation,
                     input: scheduleRequest.input,
-                    context: { authenticatedFounder: true },
-                    constraints: { schedulerActivationAllowed: false },
+                    context: scheduleAuthorityContext(scheduleRequest),
+                    constraints: { schedulerActivationAllowed: false,
+                        approvedMutation: scheduleRequest.operation.endsWith(".approve") &&
+                            scheduleRequest.input.confirm === true },
                     metadata: { transport: "remote_mcp" },
                     requestedBy: "founder", source: "claude-remote-mcp",
                     inputContractVersion: "1.0"
@@ -311,6 +313,19 @@ function normalizeScheduleRequest(input) {
         ...(input.payloadHash ? { payloadHash: input.payloadHash } : {}),
         ...(input.confirm !== undefined ? { confirm: input.confirm } : {})
     } };
+}
+
+function scheduleAuthorityContext(request) {
+    const approved = request.operation.endsWith(".approve") &&
+        request.input.confirm === true;
+    return {
+        authenticatedFounder: true,
+        ...(approved ? {
+            approvalVerified: true,
+            payloadHash: request.input.payloadHash,
+            idempotencyKey: request.input.approvalId
+        } : {})
+    };
 }
 
 function periodSchema() {

@@ -1,5 +1,5 @@
 const path = require("path");
-const dotenv = require("../../../../02_Agents/01_Journal_Agent/node_modules/dotenv");
+const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "../../../../.env"), override: true,
     quiet: true });

@@ -46,6 +46,12 @@ function run() {
     assert(validateCapabilityDeclaration(invalidLifecycle).errors.some((item) =>
         item.code === "CAPABILITY_LIFECYCLE_INVALID"));
 
+    const missingMutationPolicy = { ...declaration,
+        capabilityId: "test.writer", behavior: CAPABILITY_BEHAVIORS.MUTATING,
+        approvalRequirement: APPROVAL_REQUIREMENTS.REQUIRED,
+        operationPolicies: undefined };
+    assert.strictEqual(validateCapabilityDeclaration(missingMutationPolicy).valid, false);
+
     const request = createCapabilityRequest({
         capability: declaration.capabilityId,
         operation: "summarize",

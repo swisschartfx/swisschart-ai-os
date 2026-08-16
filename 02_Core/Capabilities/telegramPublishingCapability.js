@@ -20,6 +20,7 @@ class TelegramPublishingCapability {
             domain: "publishing",
             version: "1.0.0",
             supportedOperations: [TELEGRAM_PUBLISH_OPERATION],
+            operationPolicies: { [TELEGRAM_PUBLISH_OPERATION]: { access: "internal" } },
             executionMode: EXECUTION_MODES.SYNCHRONOUS,
             behavior: CAPABILITY_BEHAVIORS.MUTATING,
             approvalRequirement: APPROVAL_REQUIREMENTS.REQUIRED,

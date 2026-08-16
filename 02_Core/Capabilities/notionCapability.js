@@ -21,7 +21,8 @@ class NotionCapability {
             throw new Error("Notion capability request is required");
         }
 
-        if (!["get_performance_summary", "get_normalized_trades"].includes(request.intent)) {
+        if (!["get_performance_summary", "get_normalized_trades",
+            "resolve_trade_reference"].includes(request.intent)) {
             const error = new Error(
                 `Unsupported Notion capability intent: ${request.intent}`
             );
@@ -37,7 +38,7 @@ class NotionCapability {
 
         if (request.period !== undefined) validateNormalizedPeriod(request.period);
 
-        if (request.filters !== undefined &&
+        if (request.intent !== "resolve_trade_reference" && request.filters !== undefined &&
             (!request.filters || request.filters.status !== "closed" ||
                 Object.keys(request.filters).length !== 1)) {
             const error = new Error("Unsupported Notion capability filters");
@@ -59,6 +60,24 @@ class NotionCapability {
         }
 
         const serviceRequest = { databaseId };
+        if (request.intent === "resolve_trade_reference") {
+            serviceRequest.filter = {
+                property: "Trade ID",
+                title: { equals: request.tradeId }
+            };
+            const response = await this.notionService.getDatabaseRecords(serviceRequest);
+            const records = response && Array.isArray(response.records)
+                ? response.records : [];
+            return {
+                matchCount: records.length,
+                reference: records.length === 1 ? {
+                    entityType: "trade",
+                    entityId: request.tradeId,
+                    source: "trading_journal",
+                    externalReference: records[0].id || null
+                } : null
+            };
+        }
         const filters = [];
         if (request.period) {
             filters.push(...periodFilter(request.period).and);

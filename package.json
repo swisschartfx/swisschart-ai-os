@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node 01_Core/Cloud/start.js",
     "test:period": "node 02_Core/Time/testPeriodContract.js",
+    "test:p0-safety": "node 01_Core/Cloud/testP0SafetyBoundaries.js",
+    "test:p1-authority": "node 02_Core/Capabilities/testCapabilityContract.js && node 02_Core/Capabilities/testCapabilityGateway.js && node 01_Core/Cloud/testP1AuthorityBoundaries.js",
+    "test:p2-maintainability": "node 01_Core/Cloud/testP2MaintainabilityBoundaries.js",
     "test:schedules": "node 01_Core/Automation_Manager/testScheduleOccurrenceResolver.js && node 01_Core/Automation_Manager/testScheduleManagement.js && node 01_Core/Scheduler/testDurableScheduleFoundation.js",
     "test:cloud": "npm run test:period && node 02_Core/Signals/testTradeIdContract.js && node 01_Core/Cloud/testOAuthBridge.js && node 01_Core/Cloud/testNotionTradeSequenceMigration.js && node 01_Core/Cloud/testConversationalSignalIntake.js && node 01_Core/Cloud/testSignalMutation.js && node 01_Core/Cloud/testTelegramSignalPublishing.js && node 01_Core/Cloud/testCloudRuntime.js"
   },
@@ -14,6 +17,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "^0.5.1"
+    "@js-temporal/polyfill": "^0.5.1",
+    "dotenv": "^17.4.2"
   }
 }

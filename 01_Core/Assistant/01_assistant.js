@@ -13,12 +13,6 @@ const RuleResolver =
 const ruleBootstrap =
     require("../Rule_Layer/ruleBootstrap");
 
-const NotionAgent =
-    require("../../02_Agents/Notion_Agent/notionAgent");
-
-const TelegramPublishingWorkflow =
-    require("../../03_Workflows/telegramPublishingWorkflow");
-
 const AutomationManager =
     require("../Automation_Manager/automationManager");
 
@@ -27,18 +21,6 @@ const AutomationSchedulerBridge =
 
 const FounderCommandParser =
     require("./founderCommandParser");
-
-const PerformanceFormatterCapability =
-    require("../../02_Core/Capabilities/performanceFormatterCapability");
-
-const NotionCapability =
-    require("../../02_Core/Capabilities/notionCapability");
-
-const TelegramFormatterCapability =
-    require("../../02_Core/Capabilities/telegramFormatterCapability");
-
-const PerformanceSummaryTelegramWorkflow =
-    require("../../03_Workflows/performanceSummaryTelegramWorkflow");
 
 const { createCapabilityRequest } =
     require("../../02_Core/Capabilities/capabilityContract");
@@ -77,25 +59,6 @@ class SwisschartAssistant {
 
         this.analysisPlanner = options.analysisPlanner || null;
 
-        this.notionAgent =
-            options.notionAgent ||
-            new NotionAgent();
-
-        this.publishingAgent =
-            options.publishingAgent ||
-            (options.telegramPublishingWorkflow
-                ? null
-                : new (require("../../02_Agents/02_Publishing_Agent/index02"))());
-
-        this.telegramPublishingWorkflow =
-            options.telegramPublishingWorkflow ||
-            new TelegramPublishingWorkflow({
-                telegramService: {
-                    sendMessage: payload =>
-                        this.publishingAgent.publishContent(payload.text)
-                }
-            });
-
         this.automationManager =
             options.automationManager ||
             new AutomationManager();
@@ -110,26 +73,6 @@ class SwisschartAssistant {
         this.founderCommandParser =
             options.founderCommandParser ||
             new FounderCommandParser();
-
-        this.performanceFormatterCapability =
-            options.performanceFormatterCapability ||
-            new PerformanceFormatterCapability();
-
-        this.performanceSummaryTelegramWorkflow =
-            options.performanceSummaryTelegramWorkflow ||
-            (typeof this.taskEngine.execute === "function"
-                ? new PerformanceSummaryTelegramWorkflow({
-                    notionCapability:
-                        options.notionCapability ||
-                        new NotionCapability(),
-                    telegramFormatterCapability:
-                        options.telegramFormatterCapability ||
-                        new TelegramFormatterCapability(),
-                    taskEngine:
-                        this.taskEngine
-                })
-                : null);
-
 
         this.activeWorkflow =
             null;
@@ -190,33 +133,7 @@ class SwisschartAssistant {
             input.match(/^approve task (\S+)$/i);
 
         if (approvalMatch) {
-
-            if (!this.taskEngine.founderApprovalController ||
-                typeof this.taskEngine.founderApprovalController.approve !==
-                    "function" ||
-                typeof this.taskEngine.resumeApprovedTask !== "function") {
-                const error = new Error(
-                    "Task approval resume is unavailable"
-                );
-                error.code = "APPROVAL_RESUME_UNAVAILABLE";
-                throw error;
-            }
-
-            const taskId =
-                approvalMatch[1];
-
-            this.taskEngine.founderApprovalController.approve(
-                taskId
-            );
-
-            const execution =
-                await this.taskEngine.resumeApprovedTask(
-                    taskId
-                );
-
-            return this.formatTaskResponse(
-                execution
-            );
+            throw legacyAuthorityError("LEGACY_TASK_APPROVAL_BYPASS_DISABLED");
         }
 
         if (
@@ -237,13 +154,7 @@ class SwisschartAssistant {
             !this.activeWorkflow &&
             input.toLowerCase() === "publish performance summary"
         ) {
-
-            return await this.performanceSummaryTelegramWorkflow.execute({
-                source: "founder",
-                sourceReference:
-                    requestContext.sourceReference ||
-                    `assistant-request-${randomUUID()}`
-            });
+            throw legacyAuthorityError("LEGACY_PERFORMANCE_PUBLICATION_DISABLED");
         }
 
         // ==============================
@@ -373,62 +284,44 @@ class SwisschartAssistant {
         if (
             request.type === "performance_summary_publish"
         ) {
-
-            return await this.performanceSummaryTelegramWorkflow.execute({
-                source: request.source || "founder",
-                sourceReference:
-                    request.sourceReference ||
-                    `assistant-request-${randomUUID()}`
-            });
+            throw legacyAuthorityError("LEGACY_PERFORMANCE_PUBLICATION_DISABLED");
         }
 
         if (
             request.type === "notion"
         ) {
+            if (request.action === "getPerformanceSummary") {
+                return await this.handleCapabilityRequest({
+                    type: "capability",
+                    capability: "trading.data",
+                    operation: "trading.performance.summary",
+                    input: request.input || {},
+                    source: "assistant-legacy-command-adapter"
+                });
+            }
 
-            const {
-                type,
-                ...notionRequest
-            } = request;
-
-            const notionResult = await this.notionAgent.handleRequest(
-                notionRequest
-            );
-
-            return notionResult &&
-                notionResult.type === "performance_summary"
-                ? await this.routeRequest(notionResult)
-                : notionResult;
+            throw legacyAuthorityError("LEGACY_NOTION_AGENT_ROUTE_DISABLED");
         }
 
 
         if (
             request.type === "performance_summary"
         ) {
-
-            return await this.performanceFormatterCapability.execute({
-                summary: request.summary
-            });
+            throw legacyAuthorityError("LEGACY_PERFORMANCE_FORMATTER_ROUTE_DISABLED");
         }
 
 
         if (
             request.type === "telegram_publish"
         ) {
-
-            return await this.telegramPublishingWorkflow.execute(
-                request.task || request.payload || request
-            );
+            throw legacyAuthorityError("LEGACY_TELEGRAM_PUBLISH_BYPASS_DISABLED");
         }
 
 
         if (
             request.type === "automation"
         ) {
-
-            return this.handleAutomationRequest(
-                request
-            );
+            throw legacyAuthorityError("LEGACY_AUTOMATION_MUTATION_BYPASS_DISABLED");
         }
 
 
@@ -660,54 +553,18 @@ class SwisschartAssistant {
             requestContext.sourceReference ||
             `assistant-request-${randomUUID()}`;
 
-        const founderApprovalVerified =
-            requestContext.founderApprovalVerified === true;
-
-        const taskRequest = {
-            source: "founder",
-            sourceReference,
-            createdBy: "assistant-core",
-            intent: "content.publish",
-            objective:
-                "Publish the provided text to the configured Swisschart Telegram channel.",
-            capabilityRequirement: "publishing.publish",
-            input: {
-                message,
-                destination: "telegram.primary",
-                contentType: "text"
-            },
-            priority: "normal",
-            approval: {
-                required: true,
-                status: founderApprovalVerified
-                    ? "approved"
-                    : "pending",
-                reason:
-                    "External Telegram publication requires explicit founder approval.",
-                decisionBy: founderApprovalVerified
-                    ? requestContext.founderId || "founder"
-                    : null,
-                decisionAt: founderApprovalVerified
-                    ? requestContext.approvalRecordedAt ||
-                        new Date().toISOString()
-                    : null,
-                decisionReference: founderApprovalVerified
-                    ? requestContext.approvalReference || sourceReference
-                    : null
-            },
-            idempotencyKey:
-                requestContext.idempotencyKey ||
-                `telegram-publication-${sourceReference}`
-        };
-
-        const execution =
-            await this.taskEngine.execute(
-                taskRequest
-            );
-
-        return this.formatTaskResponse(
-            execution
-        );
+        return this.handleCapabilityRequest({
+            requestId: sourceReference,
+            capability: "publishing.telegram",
+            operation: "publishing.telegram.publish",
+            input: { message },
+            context: { references: [sourceReference] },
+            constraints: {},
+            metadata: { interface: "legacy-founder" },
+            requestedBy: "founder",
+            source: "assistant-shell",
+            inputContractVersion: "1.0"
+        });
     }
 
 
@@ -1415,44 +1272,18 @@ class SwisschartAssistant {
         }
 
 
-        // ==============================
-        // REAL EXECUTION
-        // ==============================
+        // Legacy conversational collection must never execute external effects.
+        // Production signal creation and publication use the governed MCP
+        // prepare/approve coordinators through Capability Gateway.
+        this.activeWorkflow = null;
+        this.signalData = {};
+        this.currentStep = null;
 
-        const signal =
-            await require("../../03_Workflows/signalExecution")(
-                this.signalData
-            );
-
-
-        this.activeWorkflow =
-            null;
-
-
-        this.signalData =
-            {};
-
-
-        this.currentStep =
-            null;
-
-
-        return {
-
-            success:
-                true,
-
-            workflow:
-                "signal",
-
-            completed:
-                true,
-
-            signal,
-
-            message:
-                `✅ ${signal.tradeId} created and published`
-        };
+        const error = new Error(
+            "Legacy Assistant signal execution is disabled; use the governed signal intake and approval path"
+        );
+        error.code = "LEGACY_SIGNAL_EXECUTION_DISABLED";
+        throw error;
     }
 
 
@@ -1551,4 +1382,12 @@ function formatUnsupportedUnderstoodRequest(request) {
     };
     return labels[request.requestClass] ||
         "I understood the request, but it is not executable with the current capabilities.";
+}
+
+function legacyAuthorityError(code) {
+    const error = new Error(
+        "Legacy mutation route is disabled; use the governed Capability Gateway path"
+    );
+    error.code = code;
+    return error;
 }

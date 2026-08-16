@@ -9,6 +9,11 @@
 
 # Runtime and persistent state
 /06_Data/Automation/automations.json
+*.sqlite
+*.sqlite3
+*.db
+*.wal
+*.shm
 *oauth-state*.json
 *oauth_state*.json
 *signal-actions*.json
@@ -24,7 +29,6 @@
 
 # Archives and backups under review
 *.zip
-!00_PROJECT_BRAIN.zip
 09_Backup/
 99_Archive/
 

@@ -230,6 +230,11 @@ function applyApprovalDecision(taskRequest, decision) {
         return;
     }
 
+    if (taskRequest.authorization &&
+        taskRequest.authorization.approvalBasis === "approved_schedule_revision") {
+        return;
+    }
+
     if (decision.mode === RULE_MODES.AUTOMATIC) {
         taskRequest.approval = {
             required: false,

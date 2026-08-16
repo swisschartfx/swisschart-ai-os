@@ -7,6 +7,10 @@ const AutomationSchedulerBridge = require("./automationSchedulerBridge");
 const SchedulerRuntime = require("./schedulerRuntime");
 const TaskEngine = require("../Task_Engine/02_taskEngine");
 const PublishingAgentExecutor = require("../Task_Engine/05_publishingAgentExecutor");
+const EventEngine = require("../Event_Engine/03_eventEngine");
+const RuleResolver = require("../Rule_Layer/03_ruleResolver");
+const ScheduledTaskEngineAdapter = require("../Task_Engine/06_scheduledTaskEngineAdapter");
+const { createScheduledTaskRule } = require("./scheduledEventHandler");
 
 function definition(id, options = {}) {
     return { scheduleId: id, name: id, enabled: options.enabled !== false,
@@ -85,6 +89,8 @@ function taskRequest(event) {
         } });
     await runtime.tick(); await runtime.tick();
     assert.strictEqual(handled, 1);
+    assert.strictEqual(completedRestart.getOccurrence(
+        runtimeEvents[0].metadata.occurrenceKey).state, "held");
 
     const lateClock = () => new Date("2026-01-05T13:02:00.000Z");
     approve(manager, definition("misfire", { grace: 30 }));
@@ -123,6 +129,31 @@ function taskRequest(event) {
     const execution = await engine.execute(taskRequest(publishEvent));
     assert.strictEqual(execution.result.status, "completed");
     assert.strictEqual(sends, 1);
+
+    approve(manager, definition("event-path"));
+    const eventBridge = new AutomationSchedulerBridge({ automationManager: manager,
+        occurrenceStore: completedRestart, occurrenceResolver: resolver, clock });
+    const eventPath = eventBridge.getScheduledEvents().find(event =>
+        event.name === "event-path");
+    let eventSends = 0;
+    const eventTaskEngine = new TaskEngine({ scheduleAuthorizationStore: completedRestart,
+        executors: { "publishing-agent": new PublishingAgentExecutor({ publisherFactory: () => ({
+            async publishContent() { eventSends += 1; return { message_id: 888,
+                chat: { id: "test-chat" } }; }
+        }) }) }, clock });
+    const eventEngine = new EventEngine({
+        taskEngine: new ScheduledTaskEngineAdapter({ taskEngine: eventTaskEngine }),
+        rules: [createScheduledTaskRule()], ruleResolver: new RuleResolver(), clock
+    });
+    const eventRuntime = new SchedulerRuntime({ eventEngine,
+        getScheduledEvents: () => [eventPath], occurrenceStore: completedRestart,
+        clock });
+    await eventRuntime.tick();
+    assert.strictEqual(eventSends, 1);
+    assert.strictEqual(completedRestart.getOccurrence(
+        eventPath.metadata.occurrenceKey).state, "completed");
+    await eventRuntime.tick();
+    assert.strictEqual(eventSends, 1);
     assert.strictEqual(Number(completedRestart.getOccurrence(
         publishEvent.metadata.occurrenceKey).messageId), 777);
     await assert.rejects(() => engine.execute(taskRequest(publishEvent)),

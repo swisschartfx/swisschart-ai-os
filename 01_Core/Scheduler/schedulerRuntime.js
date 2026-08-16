@@ -109,6 +109,16 @@ class SchedulerRuntime {
             try {
                 const evaluated = await this.eventHandler.handle(
                     this.eventAdapter.adapt(scheduledEvent), now);
+                if (durableClaim) {
+                    const current = this.occurrenceStore.getOccurrence(
+                        scheduledEvent.metadata.occurrenceKey);
+                    if (current && current.state === "claimed") {
+                        this.occurrenceStore.transitionOccurrence(
+                            current.occurrenceKey, "held", {
+                                detail: { code: "SCHEDULE_EXECUTION_NOT_FINALIZED" }
+                            }, now.toISOString());
+                    }
+                }
                 this.processedOccurrences.add(occurrenceKey);
                 results.push(evaluated);
             } catch (error) {

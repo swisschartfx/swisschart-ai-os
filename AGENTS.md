@@ -2,9 +2,9 @@
 
 # CODING AGENT INSTRUCTIONS
 
-Version: 1.2
+Version: 1.3
 Status: Active
-Last Updated: 2026-08-12
+Last Updated: 2026-08-16
 
 ---
 
@@ -16,30 +16,29 @@ Detailed development rules are maintained inside Project Brain.
 
 ---
 
-# SOURCE OF TRUTH
+# MANDATORY PROJECT ENTRY PROTOCOL
 
 The Project Brain is the primary source of truth.
 
-Before starting any development task, read:
+Before designing, implementing, refactoring or modifying Swisschart AI OS, read:
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\01_VISION.md
+F:\Swisschart AI OS\00_PROJECT_BRAIN\00_START_HERE.md
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\02_STATE.md
+Then follow its mandatory reading order.
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\03_ROADMAP.md
+At minimum, every development task must read:
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\04_RULES.md
+1. `00_PROJECT_BRAIN/00_START_HERE.md`
+2. `00_PROJECT_BRAIN/03_CURRENT_STATE.md`
+3. `00_PROJECT_BRAIN/04_NEXT_ACTION.md`
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\05_SESSION.md
+Before any source, contract, architecture or Project Brain rule change, also read:
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\06_NEXT_ACTION.md
+4. `00_PROJECT_BRAIN/02_ARCHITECTURE.md`
 
+Do not implement from assumptions, stale Mission documents, archived Session files, historical chat context or superseded Next Actions.
 
-The Session file defines the current development position.
-
-The Next Action file defines the exact next development action.
-
-Do not repeat previous discovery work when the current position is already documented.
+Only the six active canonical Project Brain files may define current truth or authorize continuation. Files under `00_PROJECT_BRAIN/archive/` are historical evidence and cannot override current state, architecture or next action.
 
 ---
 
@@ -67,27 +66,17 @@ Never guess project paths.
 
 Always verify the real filesystem structure before modifying files.
 
-Current project structure:
+The physical roots retain historical numeric prefixes for stable navigation. They do not represent a mandatory architecture pipeline:
 
-01_Core
+- `01_Core` contains the Central Assistant and execution/control runtime.
+- `02_Core` contains capability contracts, domain/shared capabilities, provider services, time and signal contracts.
+- `02_Agents` contains only Agents or explicitly labeled legacy compatibility components.
+- `03_Workflows` contains lifecycle coordination that is still genuinely required.
+- `06_Data` contains local runtime data locations and is not a universal data platform.
+- `08_Documents/archive` contains non-authoritative historical implementation documents.
+- `09_Backup` and `99_Archive` are not active architecture or Project Brain authority.
 
-02_Agents
-
-03_Workflows
-
-04_Knowledge
-
-05_Content
-
-06_Data
-
-07_Tools
-
-08_Documents
-
-09_Backup
-
-99_Archive
+Verify the real filesystem with `rg --files` before acting. Do not recreate an empty root merely because an older repository inventory listed it.
 
 
 Never use shortened or assumed paths.
@@ -109,73 +98,33 @@ Always confirm the actual path before creating or modifying files.
 
 # DEVELOPMENT CONTINUITY
 
-The current development position is recorded in:
+The current development position is recorded only in:
 
-F:\Swisschart AI OS\00_PROJECT_BRAIN\05_SESSION.md
+F:\Swisschart AI OS\00_PROJECT_BRAIN\03_CURRENT_STATE.md
 
+The exact authorized continuation is recorded only in:
 
-The next development action must always start from:
+F:\Swisschart AI OS\00_PROJECT_BRAIN\04_NEXT_ACTION.md
 
-Next Session Starting Point
-
-
-Do not restart architecture analysis unless the project structure has materially changed.
+Do not restart discovery already captured in the active canonical files. Archived Mission, Session and handoff documents cannot authorize continuation.
 
 ---
 
 # CURRENT ARCHITECTURE
 
-Swisschart AI OS is a centralized AI Operating System.
+Swisschart AI OS is a centralized AI Operating System. The Central Assistant is the Business Orchestrator and Capability Gateway is the authority boundary.
 
-Architecture:
+The authoritative logical architecture is defined in `00_PROJECT_BRAIN/02_ARCHITECTURE.md`.
 
-Founder
-
-↓
-
-Swisschart AI Assistant
-
-↓
-
-Task / Event / Workflow Engine
-
-↓
-
-Capabilities / Agents
-
-↓
-
-Services
-
-↓
-
-External Systems
-
-
-The Assistant is the central coordinator.
-
-Agents and Workflows are reusable capabilities.
+It is a dependency graph, not a mandatory processing pipeline, and it does not prescribe physical repository folders. Capabilities do not inherently require Agents.
 
 ---
 
 # EXISTING CAPABILITIES
 
-Current Agents:
+Do not maintain a second capability inventory here. Current implemented and production-proven capabilities are owned by `00_PROJECT_BRAIN/03_CURRENT_STATE.md`.
 
-- Journal Agent
-- Publishing Agent
-- Content Agent
-
-
-Current Workflows:
-
-- Signal Execution
-- Signal Workflow
-- Risk Reminder
-- Trade Lifecycle
-
-
-Do not recreate existing capabilities without a clear architectural reason.
+Before creating a component, verify that an equivalent capability, workflow, Agent, or provider service does not already exist. Historical or guarded compatibility components do not become current authority merely because their files remain in the repository.
 
 ---
 
@@ -192,9 +141,9 @@ Assistant Core must eventually:
 - Report results
 
 
-Current Blueprint:
+Current Assistant architecture and boundaries are defined in:
 
-F:\Swisschart AI OS\01_Core\Assistant\02_Assistant_Blueprint.md
+F:\Swisschart AI OS\00_PROJECT_BRAIN\02_ARCHITECTURE.md
 
 ---
 
@@ -327,22 +276,17 @@ When an operation is sensitive, ambiguous, destructive or outside the verified p
 
 ---
 
-# SESSION END RULE
+# CANONICAL UPDATE RULE
 
-At the end of each development session:
+At the end of work, update only canonical files whose facts actually changed:
 
-Update Project Brain when required.
+- `03_CURRENT_STATE.md` when current truth changed
+- `04_NEXT_ACTION.md` when authorized continuation changed
+- `05_HISTORY.md` when a durable milestone, decision, incident or proof completed
 
-Ensure 05_SESSION.md contains:
+Update `01_MASTER_CONTEXT.md` or `02_ARCHITECTURE.md` only when their durable context, principles or rules genuinely change with appropriate authorization.
 
-- Completed work
-- Decisions made
-- Current position
-- Remaining work
-- Exact next development action
-
-
-The next session must continue without repeating discovery.
+Do not create permanent session-summary files for ordinary conversational continuity.
 
 ---
 
