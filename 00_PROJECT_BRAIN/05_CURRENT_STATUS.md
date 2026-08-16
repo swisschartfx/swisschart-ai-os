@@ -357,8 +357,20 @@ Mission 9 remains open: its two-message risk-first implementation is deployed, b
 
 Mission 10 is STOPPED and its partial implementation was removed. Full handoff and exact continuation sequence: `16_SESSION_HANDOFF_2026-08-15.md`.
 
+## SCT-2647 Incident Resolution — 2026-08-16
+
+Founder authorized removal of only the verified unintended legacy fixture. Immediately before mutation, Notion page `3be12820-1365-81b0-b005-d6e5ff392f2a` in database `36f12820-1365-80af-a911-d58737ec2082` was re-read directly and verified as the active `SCT-2647` GBPUSD SELL fixture with Entry `1.35755`, Stop Loss `1.35813`, TP1 `1.35260`, TP2 `1.34800`, TP3 `1.34000`, Risk `1%` and Grade `3`.
+
+Only that exact page was archived. A post-archive page re-read confirmed `archived=true` and `in_trash=true`; an exact read-only Trading Journal query returned zero active `SCT-2647` records and no active duplicate. The Founder had already manually removed the two unintended Telegram test messages. The incident is resolved. No other Notion record, Telegram message or business system was mutated. Mission 10 remains STOPPED.
+
 ## Repository Hygiene Incident — 2026-08-16
 
 During a local repository cleanup regression pass, the unreferenced legacy `01_Core/Assistant/testAssistant.js` was mistakenly executed as a unit test. The file explicitly used `testMode: false`, loaded live nested `.env` credentials and entered the legacy direct Signal execution path outside the v4.4 MCP approval boundary. Its successful runtime output reported two Telegram sends (Risk Reminder then Signal) and Notion creation of `SCT-2647` for its hard-coded GBPUSD SELL fixture. No provider message IDs or Notion page ID were returned by that script, so those external identifiers remain unverified. No rollback, deletion or compensating external mutation was attempted. The unsafe script was removed locally as an unreferenced real-execution verification artifact. Mission 10 remains stopped.
 
 Current active task: **Fix live Claude routing so Founder Signal/سیگنال immediately invokes `signal_intake_start` and asks Asset first.**
+
+## Mission 9 Live E2E Production Verification — 2026-08-16
+
+Mission 9 is production-proven. A real Founder Claude workflow created exactly one verified active `SCT-2647` in Notion and then executed the separately prepared and separately approved canonical Telegram Risk Management→Signal bundle. Railway logs show one completed Notion approval execution and one later completed Telegram approval execution with exactly two successful Publishing Agent sends and no third send. No active duplicate `SCT-2647`, no active `SCT-2648`, no approval bypass, no Scheduler involvement and no legacy-script involvement were found.
+
+Notion page: `3be12820-1365-8122-8758-d05fbd660bc9`; created `2026-08-16T09:56:00.000Z`. Telegram message IDs remain `UNKNOWN` because they are absent from structured logs and the persisted Railway action files were not accessible without changing SSH access. This evidence limitation does not obscure the completed two-send bundle execution. Mission 10 remains STOPPED.

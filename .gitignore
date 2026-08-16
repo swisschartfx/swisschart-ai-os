@@ -9,11 +9,12 @@
 
 # Runtime and persistent state
 /06_Data/Automation/automations.json
-**/oauth-state*.json
-**/oauth_state*.json
-**/signal-actions*.json
-**/telegram-publish-actions*.json
-**/prepared-actions*.json
+*oauth-state*.json
+*oauth_state*.json
+*signal-actions*.json
+*telegram-actions*.json
+*telegram-publish-actions*.json
+*prepared-actions*.json
 
 # Deployment/editor-local state
 .railway/

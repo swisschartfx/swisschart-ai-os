@@ -1,7 +1,7 @@
 # Mission 9 — Founder-Approved Signal Publishing to Telegram
 
 Date: 2026-08-15
-Status: CORRECTIVE PATCH DEPLOYED — TWO-MESSAGE PRODUCTION PROOF AWAITS FOUNDER APPROVAL
+Status: PRODUCTION-PROVEN — CORRECTIVE TWO-MESSAGE LIVE E2E COMPLETE
 
 Swisschart now supports a narrowly scoped signal-publication action through the existing single `swisschart.query` MCP tool. Swisschart renders the final signal message, binds that immutable content, the configured primary Telegram destination, signal reference and metadata to a SHA-256 payload hash, and requires explicit authenticated Founder approval before execution.
 
@@ -50,3 +50,13 @@ The deployed implementation has immutable bundle approval, exact destination `@s
 Before that proof, the live Claude intake blocker must be fixed. Backend schema `4.3` is healthy, but Claude did not route Founder `سیگنال` directly to `signal_intake_start`; it returned generic interpretations and later a capability choice. The next task is schema/tool-description semantic hardening so the first effective response becomes `Asset چیه؟`.
 
 No SCT-2647 exists. The intended next real test may create it only after a complete conversational preview and explicit Notion approval. Telegram remains a later, separate explicit approval. Mission 10 remains STOPPED. Full handoff: `16_SESSION_HANDOFF_2026-08-15.md`.
+
+## Live Founder E2E production proof — 2026-08-16
+
+Mission 9 is now objectively production-proven through the real Founder Claude workflow. Production Notion contains exactly one active `SCT-2647`, page `3be12820-1365-8122-8758-d05fbd660bc9`, created `2026-08-16T09:56:00.000Z`, with GBPUSD SELL, Entry `1.34640`, Stop Loss `1.34846`, TP1 `1.32160`, TP2 `1.32100`, TP3 `1.32010`, Risk `1%` and Grade `3`. No active duplicate and no active `SCT-2648` exist.
+
+Railway structured logs prove the authenticated sequence: intake and progressive validation; Notion `signal_prepare` pending approval at `09:55:47.137Z`; separate `signal_approve` completed at `09:56:49.307Z`; Telegram `signal_publish_prepare` pending approval at `09:57:41.088Z`; and separate `signal_publish_approve` completed at `09:58:03.660Z`. The Telegram approval produced exactly two successful Publishing Agent sends in canonical Risk Management→Signal order and no third business send in the audited workflow window. The two approval gates used different request types, request IDs and times and were genuinely separate.
+
+The production logs and authoritative Notion read prove one Notion execution and one two-message Telegram bundle execution, with no approval bypass, duplicate execution, accidental `SCT-2648`, Scheduler involvement or legacy-script involvement. Railway has no `SCHEDULER_ENABLED=true` configuration. Telegram provider message IDs are not present in structured logs and persisted action files could not be inspected read-only because this workstation has no registered Railway SSH key; the IDs remain `UNKNOWN` and were not assumed.
+
+Mission 9 production proof does not authorize Mission 10. Mission 10 remains STOPPED.

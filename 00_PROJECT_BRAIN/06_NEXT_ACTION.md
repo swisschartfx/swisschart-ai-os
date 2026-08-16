@@ -194,3 +194,19 @@ The live blocker is MCP discovery/semantic routing/tool-description behavior, no
 Proceed in this order: harden non-mutating schema instructions → tests → deploy → brand-new Claude conversation → `سیگنال` must yield effectively `Asset چیه؟` → collect fields one at a time → stop at Notion approval. SCT-2647 does not exist and requires explicit Founder approval. The separate Telegram bundle proof also requires explicit approval. Mission 10 remains STOPPED.
 
 Full authoritative handoff: `16_SESSION_HANDOFF_2026-08-15.md`.
+
+---
+
+# Incident Cleanup Completion — 2026-08-16
+
+The verified unintended Notion record `SCT-2647` was archived by its exact page ID after a complete fixture re-verification. A read-only post-check found zero active `SCT-2647` Trading Journal records and no active duplicate. The Founder had already manually removed the two unintended Telegram test messages. The incident is resolved.
+
+No continuation is authorized by this cleanup. Mission 10 remains STOPPED. Await a separately scoped Founder instruction.
+
+---
+
+# Mission 9 Production Proof Completion — 2026-08-16
+
+The live Founder Claude→Signal intake→Notion prepare/approve/write→separate Telegram prepare/approve/publish flow is production-proven for `SCT-2647`. Exactly one active Notion record and one canonical two-message Telegram bundle execution were verified from authoritative production evidence. No duplicate, `SCT-2648`, approval bypass, Scheduler involvement or legacy-script involvement was found.
+
+Mission 9 completion does not authorize Mission 10. Mission 10 remains STOPPED. Await a separately scoped Founder instruction.

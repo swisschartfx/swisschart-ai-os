@@ -725,3 +725,37 @@ Current position: the complete working implementation is ready for one local bas
 ## Exact Next Development Action
 
 Mission 4: choose and authorize one Claude authentication path—minimal scoped OAuth for Claude.ai custom connectors, or an Anthropic Messages API E2E with an authorized API credential—then execute the five Persian Founder prompts and repeat the production security suite without enabling writes.
+
+---
+
+## Session: Verified SCT-2647 Incident Cleanup
+
+Date: 2026-08-16
+
+- Re-read exact Notion page `3be12820-1365-81b0-b005-d6e5ff392f2a` and verified its page/database identity, active state and complete accidental GBPUSD SELL fixture values for `SCT-2647`.
+- Archived only that exact page by page ID; no broad database mutation was used.
+- Re-read the page as archived/in trash and performed one exact read-only Trading Journal query; zero active `SCT-2647` records and no active duplicate remain.
+- The Founder had already manually deleted the two unintended Telegram test messages.
+- The incident is resolved. No other Notion, Telegram or business mutation occurred.
+
+Current position: accidental `SCT-2647` cleanup is complete. Mission 10 remains stopped.
+
+Exact next development action: STOP and await a separately scoped Founder instruction. Do not resume Mission 10.
+
+---
+
+## Session: Mission 9 Live E2E Production Verification
+
+Date: 2026-08-16
+
+- Verified exactly one active `SCT-2647` in production Notion: page `3be12820-1365-8122-8758-d05fbd660bc9`, created `2026-08-16T09:56:00.000Z`, with all expected GBPUSD SELL values.
+- Verified no active duplicate `SCT-2647` and no active `SCT-2648`.
+- Correlated authenticated Railway logs for intake, progressive validation, Notion prepare, separate Notion approval/execution, Telegram publish prepare, and separate Telegram approval/execution.
+- Verified exactly two successful Publishing Agent sends for the canonical Risk Management→Signal bundle and no additional business send in the audited workflow window.
+- Verified no approval bypass, duplicate execution, Scheduler involvement or legacy-test-script involvement.
+- Telegram message IDs are `UNKNOWN`: structured logs do not contain them, and persisted Railway action state could not be inspected without registering an SSH key, which was not authorized or attempted.
+- Performed no production/business mutation during verification.
+
+Current position: Mission 9 is objectively production-proven. Mission 10 remains STOPPED.
+
+Exact next development action: STOP and await a separately scoped Founder instruction. Do not resume Mission 10.
