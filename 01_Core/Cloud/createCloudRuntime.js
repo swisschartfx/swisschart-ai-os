@@ -9,7 +9,34 @@ const OAuthStateStore = require("./oauthStateStore");
 const SignalActionStore = require("./signalActionStore");
 const SignalMutationCoordinator = require("./signalMutationCoordinator");
 const TelegramPublishCoordinator = require("./telegramPublishCoordinator");
-const PublishingAgent = require("../../02_Agents/02_Publishing_Agent/publishingAgent");
+
+const PublishingAgent = require(
+    "../../02_Agents/02_Publishing_Agent/publishingAgent"
+);
+
+const TaskEngine = require("../Task_Engine/02_taskEngine");
+const PublishingAgentExecutor = require(
+    "../Task_Engine/05_publishingAgentExecutor"
+);
+const ScheduledTaskEngineAdapter = require(
+    "../Task_Engine/06_scheduledTaskEngineAdapter"
+);
+
+const EventEngine = require("../Event_Engine/03_eventEngine");
+const RuleResolver = require("../Rule_Layer/03_ruleResolver");
+
+const SchedulerRuntime = require("../Scheduler/schedulerRuntime");
+const AutomationSchedulerBridge = require(
+    "../Scheduler/automationSchedulerBridge"
+);
+const {
+    createScheduledTaskRule
+} = require("../Scheduler/scheduledEventHandler");
+
+const ScheduleOccurrenceResolver = require(
+    "../../02_Core/Time/scheduleOccurrenceResolver"
+);
+
 const path = require("path");
 
 function createCloudRuntime(options = {}) {
@@ -80,6 +107,13 @@ function createCloudRuntime(options = {}) {
         logger
     });
 
+    const schedulerRuntime = options.schedulerRuntime ||
+        createProductionSchedulerRuntime({
+            composition,
+            publisher,
+            clock: options.clock
+        });
+
     return new ProductionRuntime({
         server,
         port: config.port,
@@ -88,9 +122,63 @@ function createCloudRuntime(options = {}) {
         telegramRuntime: options.telegramRuntime,
         schedulerRuntime:
             config.schedulerEnabled === true
-                ? options.schedulerRuntime
+                ? schedulerRuntime
                 : null
     });
 }
 
-module.exports = { createCloudRuntime };
+function createProductionSchedulerRuntime(options = {}) {
+    const composition = options.composition;
+
+    if (
+        !composition ||
+        !composition.automationManager ||
+        !composition.scheduleStore
+    ) {
+        return null;
+    }
+
+    const publishingExecutor = new PublishingAgentExecutor({
+        publisherFactory: () => options.publisher
+    });
+
+    const taskEngine = new TaskEngine({
+        scheduleAuthorizationStore: composition.scheduleStore,
+        executors: {
+            "publishing-agent": publishingExecutor
+        },
+        ...(options.clock ? { clock: options.clock } : {})
+    });
+
+    const scheduledTaskEngineAdapter = new ScheduledTaskEngineAdapter({
+        taskEngine
+    });
+
+    const eventEngine = new EventEngine({
+        taskEngine: scheduledTaskEngineAdapter,
+        rules: [createScheduledTaskRule()],
+        ruleResolver: new RuleResolver(),
+        ...(options.clock ? { clock: options.clock } : {})
+    });
+
+    const occurrenceResolver = new ScheduleOccurrenceResolver();
+
+    const automationSchedulerBridge = new AutomationSchedulerBridge({
+        automationManager: composition.automationManager,
+        occurrenceStore: composition.scheduleStore,
+        occurrenceResolver,
+        ...(options.clock ? { clock: options.clock } : {})
+    });
+
+    return new SchedulerRuntime({
+        eventEngine,
+        automationSchedulerBridge,
+        occurrenceStore: composition.scheduleStore,
+        ...(options.clock ? { clock: options.clock } : {})
+    });
+}
+
+module.exports = {
+    createCloudRuntime,
+    createProductionSchedulerRuntime
+};
