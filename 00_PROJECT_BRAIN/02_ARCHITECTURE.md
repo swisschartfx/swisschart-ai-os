@@ -360,3 +360,32 @@ For the current single Railway service and Volume, injected SQLite is the smalle
 ## 16. Non-Goals
 
 This architecture does not authorize new folders that mirror logical layers, speculative universal infrastructure, Agent proliferation, provider-specific business logic, deployment, production mutation, Scheduler activation or Mission 10.
+
+## 17. Founder-Configurable Production Scheduling
+
+**Approved and production-proven control path: 2026-08-16**
+
+Recurring operational schedules are configurable business state, not source-code configuration.
+
+Founder schedule management may originate from an authenticated Founder interface such as Claude, but deterministic schedule truth and mutation authority remain inside Swisschart AI OS.
+
+Canonical control path:
+
+```text
+Founder
+  ↓
+Founder Interface
+  ↓
+Central Swisschart Assistant
+  ↓
+Capability Gateway
+  ↓
+Schedule Management
+  ↓
+Durable Schedule Store
+  ↓
+Scheduler Runtime
+  ↓
+Event / Task / Publishing
+  ↓
+External Provider

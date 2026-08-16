@@ -3,130 +3,284 @@
 Status: ACTIVE — ONLY CANONICAL CURRENT TRUTH
 As Of: 2026-08-16
 
-This document states what is true now. Historical snapshots and archived Mission documents cannot override it.
+This document states what is true now. Historical snapshots, archived Mission documents and old Session records cannot override it.
 
 ## Production
 
-### Central Assistant and Authority Path
+### Central Assistant and Founder Interface
 
 - The Central Swisschart Assistant is implemented and production-proven.
 - Claude is the primary Founder conversational interface through the authenticated Remote MCP connection.
-- Structured Claude requests execute through `SwisschartAssistant` and Capability Gateway; they do not depend on OpenAI Request Understanding.
-- Capability Gateway is the business authority boundary.
-- The Founder Telegram interface and the production Publishing Agent path remain separate interfaces/roles around the same Central Assistant architecture.
+- Claude handles conversational interpretation and presentation; Swisschart AI OS owns deterministic business truth, authorization, durable state and execution.
+- Structured Founder requests execute through `SwisschartAssistant` and Capability Gateway.
+- Capability Gateway remains the business authority boundary.
+- The system is cloud-based and does not depend on the Founder laptop being online.
 
-### Railway and MCP
+### Railway Runtime
 
 - Railway project: `swisschart-ai-os`.
+- Environment: `production`.
 - Service: `swisschart-read-only`.
-- Server name/version: `swisschart-read-only` `1.1.0`.
-- `GET /health` is implemented and configured as the Railway health check.
-- Exactly one public MCP tool is exposed: `swisschart.query`.
-- Production MCP schema: `4.4`.
-- Production schema `4.4` contains the narrow exact standalone `Signal` / `سیگنال` routing metadata for `signal_intake_start` and retains `period=all`.
-- Latest documented schema 4.4 deployment: `e0062500-a579-4280-86fe-bf0fbc202e34`, status SUCCESS.
-- The production service remains cloud-based and does not depend on the Founder laptop being online.
+- Region: Amsterdam / EU West.
+- One Railway service replica is used.
+- Managed Railway Volume is mounted at `/data`.
+- `GET /health` is configured as the Railway health check.
+- Production startup, Volume mount and health check are verified after the Scheduler wiring deployment.
+- Production Scheduler Runtime is deployed and operationally enabled.
 
 ### Authentication and Durable State
 
 - Claude uses the Founder-only OAuth boundary with PKCE and hashed access-token records.
-- OAuth client/token state and durable prepared-action state are persisted on the managed Railway Volume mounted at `/data`.
-- Restart and redeploy survival are production-proven.
+- OAuth state and durable action state are persisted on `/data`.
+- Durable schedule and occurrence state is persisted in:
+
+`/data/schedules.sqlite`
+
+- Restart and redeploy persistence on the managed Volume is production-proven.
 - Raw access tokens and Founder credentials are not persisted in Project Brain or source.
-- Current persistence/coordination is designed for one Railway service replica. Horizontal multi-replica coordination is not implemented.
+- Persistence and coordination currently assume one Railway service replica.
+- Horizontal multi-replica scheduling coordination is not implemented.
 
 ### Trading Data and Analytics
 
 - Real Notion-backed Trading Data, Trading Analytics and General Trading Analysis are production-proven through Claude in Persian.
 - Period Contract `1.0` and `America/New_York` business boundaries are deployed.
 - Supported periods include `period=all` and Founder-inclusive explicit ranges.
-- Notion remains behind provider-neutral Trading Data boundaries.
+- Notion remains behind provider-neutral Trading Data capability/service boundaries.
 
 ### Signal Creation to Notion
 
-- Mission 8's narrowly scoped, Founder-approved Signal creation path is production-proven.
+- Founder-approved Signal creation is production-proven.
 - Signal preparation, immutable payload-hash approval, explicit Founder approval, SCT allocation, Notion creation and replay idempotency are implemented.
 - Canonical Trade IDs use `SCT-YYNN` with the New York calendar year and annual sequence.
 - Notion `Trade Sequence` ordering is production-complete.
-- Generic Notion mutation is not exposed by this capability.
+- Generic Notion mutation is not implicitly exposed by this capability.
 
 ### Signal Publication to Telegram
 
-- Mission 9 is production-complete.
+- Founder-approved Telegram signal publication is production-proven.
 - Notion signal creation and Telegram signal publication remain separate prepare/approve actions.
-- The canonical Telegram bundle sends Risk Management first and Signal second through Capability Gateway, Publishing Agent and Telegram Service.
-- Durable per-message state, zero-send completed replay, missing-second-message recovery and conservative uncertain-delivery handling are implemented.
-- A real Founder Claude workflow production-proved one Notion creation followed by one separately approved two-message Telegram bundle, without approval bypass, duplicate execution or Scheduler involvement.
+- The canonical Telegram bundle sends Risk Management first and Signal second.
+- Publication passes through Capability Gateway, Publishing Agent and Telegram Service.
+- Durable per-message state, replay protection, missing-second-message recovery and conservative uncertain-delivery handling are implemented.
 
-### Current Trading Evidence
+## Production Configurable Scheduling
 
-- One legitimate active `SCT-2647` exists from the approved live Founder workflow.
-- Notion page: `3be12820-1365-8122-8758-d05fbd660bc9`.
-- Created: `2026-08-16T09:56:00.000Z`.
-- Verified signal: GBPUSD SELL; Entry `1.34640`; Stop Loss `1.34846`; TP1 `1.32160`; TP2 `1.32100`; TP3 `1.32010`; Risk `1%`; Grade `3`.
-- No active duplicate `SCT-2647` and no active `SCT-2648` were found in the recorded production verification.
+### Scheduling Foundation
 
-## Local / Not Deployed
+The configurable scheduling architecture is deployed in Production.
 
-- Mission 4A found the repository fundamentally aligned with cleanup required; repository cleanup remains incomplete.
-- Mission 4B P0 safety cleanup is implemented and verified locally, not deployed.
-- Mission 4C P1 Authority and Architecture Cleanup is implemented and verified locally, not deployed.
-- Mission 4D P2 Maintainability and Legacy Cleanup is implemented and verified locally, not deployed.
-- Mission 4E P3 Organization and Naming Review is complete locally. Repository Architecture Cleanup findings P0 through P3 and the combined Closeout/Git Review are complete.
-- The consolidated Mission 3B/4B/4C/4D/4E cleanup phase is committed locally as one cohesive change. It has not been pushed or deployed.
-- The active Publishing Agent entry module is named `publishingAgent.js`; the cloud capability/runtime composition is named `cloudComposition.js`. All active references use the accurate names.
-- Eight unused empty directories left by earlier implementation/removal work were removed. The historical `01_Core` and `02_Core` roots and other numbered active files were deliberately retained because renaming them would add broad churn without behavioral, authority or safety value.
-- Normal Assistant/cloud composition no longer loads the legacy Notion Agent, duplicate performance/publication workflows, or the removed Content Agent. Legacy Journal/Notion components remain explicitly isolated for guarded manual compatibility and tests only.
-- The fallback Telegram interface now uses the root `dotenv` dependency and no longer reaches into the legacy Journal Agent's private dependencies.
-- Schema 4.5 schedule/occurrence state is owned by SQLite. The renamed legacy JSON Automation store remains manual compatibility only and cannot activate scheduling through ordinary startup.
-- The tested `SchedulerRuntime` is the sole current scheduling foundation; the unreferenced simple Scheduler implementation and other proven dead/orphan components were removed.
-- The current Telegram Signal formatter remains owned by Publishing Agent and preserves TP3, Risk, RR3 and canonical Trade ID output. The unreferenced legacy Journal signal formatter was removed.
-- Stale implementation blueprints and legacy Journal design material are preserved under `08_Documents/archive/` as explicitly historical/non-authoritative evidence.
-- The stale root Project Brain ZIP was preserved under `09_Backup/` and no longer sits beside active authority.
-- Capability declarations now classify each operation as read, governed mutation or internal/delegated execution. Gateway centrally rejects governed mutations without approved-mutation authority, approval verification, and any declared payload-binding/idempotency context; capability-local checks remain.
-- Registered governed mutations currently include Notion signal creation, Telegram signal publication, and schedule create/update/delete approval operations. Schedule list/inspect remain reads; schedule preparation and Task-mediated generic Telegram publication are internal/delegated operations that do not directly authorize provider effects.
-- Telegram Signal Capability now validates canonical Trade IDs through provider-neutral Trading Data reference resolution and has no Notion service, database-ID, property or record dependency.
-- Active legacy Assistant routes for raw Task approval, direct Telegram workflow execution, direct AutomationManager mutation and performance-summary publication are fail-closed. Ordinary Telegram text publication enters the registered `publishing.telegram` capability and Task approval lifecycle through Capability Gateway.
-- Local cloud composition can instantiate SQLite-backed Schedule Management and register it with the Gateway without constructing or starting a Scheduler runtime.
-- Approved immutable schedule grants survive Event/Rule evaluation without becoming a second pending approval. Durable occurrence states now deterministically distinguish completed, safely retryable pre-publication failure, held non-execution, suppression/skipping and delivery uncertainty.
-- `npm.cmd run test:p1-authority`, `npm.cmd run test:p0-safety`, `npm.cmd run test:cloud`, and `npm.cmd run test:schedules` pass after Mission 4C using provider-neutral mocks and temporary local SQLite only.
-- Ordinary Assistant execution can no longer reach the legacy combined Signal → Telegram → Notion workflow.
-- The retained legacy signal workflow is manual-only, loads provider code only after authorization, and requires explicit production target plus separate Telegram and Notion confirmations.
-- Production-capable Telegram/signal probe scripts are isolated under `manual/external/`, are no longer named as ordinary tests, and fail closed without explicit target/action flags.
-- The legacy root entrypoint no longer starts its JSON-backed Scheduler unless `SWISSCHART_ENABLE_LEGACY_SCHEDULER=true`; this does not enable schema 4.5 scheduling.
-- Local Telegram publication state now records `CONFIRMED_SENT`, `DEFINITE_NOT_SENT`, or `DELIVERY_UNCERTAIN`. Unknown/ambiguous failures and restart-in-`sending` are held for review and cannot resend; only explicitly proven pre-send/provider-rejected outcomes are retryable.
-- The active Agent Registry policy reference now points to `00_PROJECT_BRAIN/02_ARCHITECTURE.md`.
-- `npm.cmd run test:p0-safety`, `npm.cmd run test:cloud`, and `npm.cmd run test:schedules` pass after Mission 4B using static/mock/temp-only paths.
-- Configurable Market-Session Messaging Codex 2/3 is implemented and verified locally.
-- Local MCP schema is `4.5`; schema `4.5` is **not deployed**.
-- Local implementation includes versioned schedule rules, semantic schedule management, Temporal/IANA DST resolution, injected SQLite persistence, durable occurrence claims/recovery, suppression/misfire boundaries and Task Engine approved-schedule validation.
-- `npm.cmd run test:schedules` passed after Codex 2/3.
-- `npm.cmd run test:cloud` passed after Codex 2/3.
-- The exact standalone Signal/سیگنال schema 4.4 discovery contract remains preserved in local schema 4.5.
+Production scheduling uses the existing path:
 
-## Disabled
+Schedule Management
+→ SQLite durable schedule / occurrence state
+→ AutomationSchedulerBridge
+→ SchedulerRuntime
+→ Event Engine
+→ Task Engine
+→ PublishingAgentExecutor
+→ Publishing Agent
+→ Telegram
 
-- Scheduler execution remains disabled by default in production.
-- No production schedules exist.
-- No initial weekday/weekend market-session schedule records exist in production.
-- No final Founder market-session message templates or misfire grace values have been approved.
-- No holiday intelligence is implemented; only a local extension boundary exists.
+The Production Cloud Runtime constructs and supplies the durable Scheduler Runtime.
 
-## Stopped / Deferred
+`SCHEDULER_ENABLED=true` is set in Production.
 
-- Mission 4A P0/P1/P2/P3 findings and the Repository Cleanup Closeout are complete locally. Configurable Market-Session Messaging Codex 3/3 is the next recommended development step and still requires separate Founder authorization.
-- Codex 3/3 has not been executed and requires separate Founder authorization.
-- Mission 10 remains **STOPPED**.
-- Universal Data Warehouse/Lake, event bus, Redis, universal social/metric schemas, cross-platform attribution, Knowledge Graph, Vector Database, Feature Store, detailed Advisor and Growth Intelligence remain deferred.
+`SWISSCHART_SCHEDULE_DATABASE_FILE` points to the durable Railway Volume schedule database.
+
+The legacy JSON-backed Scheduler is not the Production scheduling authority.
+
+### Founder Schedule Management
+
+Schedule Management is available through the existing Central Assistant / Capability Gateway path.
+
+Founder schedule operations support governed:
+
+- list
+- inspect
+- create prepare / approve
+- update prepare / approve
+- delete prepare / approve
+
+Operational schedules can therefore be added or changed without source-code edits when the requested behavior fits the approved Schedule Management contract.
+
+Schedule mutations remain approval-bound and persisted approved revisions remain the unattended execution authority.
+
+### Active Market-Session Schedules
+
+Five Founder-approved weekday market-session schedules are enabled in Production:
+
+1. `market.london.preopen_60m`
+   - Monday-Friday
+   - 60 minutes before London open
+   - London anchor: `08:00 Europe/London`
+
+2. `market.london.preopen_5m`
+   - Monday-Friday
+   - 5 minutes before London open
+   - London anchor: `08:00 Europe/London`
+
+3. `market.london.preclose_5m`
+   - Monday-Friday
+   - 5 minutes before London close
+   - London anchor: `17:00 Europe/London`
+
+4. `market.newyork.preopen_5m`
+   - Monday-Friday
+   - 5 minutes before New York open
+   - New York anchor: `08:00 America/New_York`
+
+5. `market.newyork.preclose_5m`
+   - Monday-Friday
+   - 5 minutes before New York close
+   - also serves as the Swisschart end-of-trading-day channel message
+   - New York close anchor: `17:00 America/New_York`
+
+All five are enabled at persisted revision `2`.
+
+IANA timezone and DST resolution are used.
+
+### Weekly Forex Open Schedule
+
+A sixth Production schedule was created directly through the Claude Founder interface:
+
+`market.weekly.forexopen_preopen_5m`
+
+Persisted configuration:
+
+- approval status: `approved`
+- enabled: `true`
+- revision: `1`
+- weekday: Sunday / ISO weekday `7`
+- trigger: `session_relative`
+- New York session open boundary
+- offset: `-5 minutes`
+- effective local time: `16:55`
+- timezone: `America/New_York`
+- destination: `telegram.primary`
+- template revision: `1`
+
+Approved message:
+
+The market opens in 5 minutes
+
+A new trading week is about to begin
+Wishing all traders a focused, disciplined and successful week ahead
+
+As precise as a Swiss watch
+
+<a href="https://linktr.ee/swisschart">Swisschart Links</a>
+
+The schedule was:
+
+Founder request in Claude
+→ duplicate check
+→ prepare
+→ preview
+→ correction
+→ immutable payload binding
+→ explicit Founder approval
+→ durable persistence
+→ enabled Production schedule
+
+No VS Code edit, SSH database mutation or source-code deployment was required to create this schedule.
+
+This is the first Production proof that the Founder can create a compatible recurring operational schedule through the conversational interface while Swisschart AI OS retains deterministic authority and durable state.
+
+### Current Scheduling Proof Boundary
+
+The following are production-proven:
+
+- durable Production schedule persistence
+- Production Scheduler Runtime wiring
+- Scheduler operational activation
+- approved and enabled persisted schedule revisions
+- Production schedule inspection
+- next-occurrence resolution
+- creation and approval of a new schedule through Claude
+- IANA/DST-aware schedule resolution
+- durable occurrence and execution authorization architecture through regression tests
+
+The first actual provider delivery from the newly activated recurring schedule set has not yet been recorded in Project Brain as observed evidence.
+
+Therefore:
+
+Configuration and activation are complete.
+
+The first real scheduled Telegram fire remains the final operational observation.
+
+The mutation response field `executionMetadata.schedulerActivated` is not the authoritative health indicator for the long-running Scheduler Runtime. Scheduler activation is owned by Production runtime configuration.
+
+## Repository and Architecture State
+
+- Project Brain is consolidated into six active canonical documents plus the explicitly non-authoritative archive.
+- `00_START_HERE.md` is the mandatory entry point.
+- The active architecture is Top-Down Architectural Definition + Bottom-Up Capability Completion.
+- Capability Gateway remains the single business authority boundary.
+- Shared Core, Domain Capabilities and Execution & Control are logical architectural concerns and do not require a cosmetic one-to-one folder structure.
+- Agents and workflows are optional execution components, not independent brains.
+- Notion remains provider-neutral behind Trading Data boundaries.
+- The active Publishing Agent module is `publishingAgent.js`.
+- Active cloud composition is `cloudComposition.js`.
+- Legacy raw Assistant approval, direct provider workflow and direct AutomationManager mutation paths are fail-closed or isolated behind explicit manual guards.
+- The legacy combined Signal → Telegram → Notion execution path is not reachable through normal Assistant execution.
+- Production-capable manual probes are isolated under `manual/external/`.
+
+## Repository Cleanup Status
+
+The earlier P0-P3 cleanup and closeout work is complete.
+
+A broader Repository Architecture Conformance Audit & Cleanup remains the next separately authorized project Mission.
+
+Its purpose is to compare the real Repository against the approved architecture and identify remaining:
+
+- misplaced ownership
+- duplicate responsibilities
+- legacy active reachability
+- authority bypasses
+- provider leakage
+- unnecessary parallel systems
+- organizational inconsistencies
+- stale active references
+
+Existing production-proven implementation must not be rewritten merely to make folders visually resemble the logical architecture.
+
+## Current Test Evidence
+
+The following regression suites passed during the scheduling work:
+
+- `npm.cmd run test:cloud`
+- `npm.cmd run test:schedules`
+- Market-session timezone/DST tests
+- Market-session Schedule Management integration tests
+
+The Production deployment also passed Railway `/health`.
+
+## Current Git / Deployment Milestones
+
+Relevant scheduling commits include:
+
+- `fcf6903` — Add configurable market session schedules
+- `6d6f09e` — Require Node 22 for SQLite runtime
+- `62f4234` — Add guarded market session seed script
+- `1a96789` — Wire production scheduler runtime
+
+These changes were pushed and deployed during the session.
 
 ## Known Limitations
 
-- Telegram has no client-supplied idempotency key. A crash after provider acceptance but before message-ID persistence cannot be proven exactly-once; the system holds uncertain delivery for review.
-- The strengthened same-process Telegram delivery-certainty taxonomy is local-only until separately deployed; production remains at its previously verified schema/runtime state.
-- Telegram provider message IDs for the live Mission 9 two-message `SCT-2647` proof are unknown because structured logs did not contain them and persisted action files were not accessed.
-- OAuth/action/schedule persistence is currently designed for a single Railway replica.
-- OAuth token expiry still requires normal reauthorization; global revocation is an operational maintenance procedure.
-- Existing Claude conversations may retain stale MCP schemas after schema changes; a new conversation may be required to discover a refreshed tool definition.
+- Telegram has no client-supplied idempotency key. A crash after provider acceptance but before message-ID persistence cannot be proven exactly-once; uncertain delivery must remain held for review.
+- Production durable state and scheduling coordination currently assume one Railway replica.
+- Horizontal scheduler leadership/locking for multiple replicas is not implemented.
+- Holiday intelligence is not implemented; only the suppression-policy boundary exists.
+- The first observed real scheduled Telegram delivery from the newly activated schedule set has not yet been recorded as evidence.
+- OAuth token expiry still requires normal reauthorization.
+- Existing Claude conversations may retain stale MCP/tool discovery after future schema changes.
 - There is no authoritative TP-generation formula; TP1, TP2 and TP3 remain Founder-supplied.
 - Unknown instruments must be clarified rather than guessed.
-- Scheduling production templates, activation parameters and controlled deployment remain incomplete.
+
+## Stopped / Deferred
+
+- Mission 10 remains STOPPED.
+- Universal Data Warehouse/Lake, event bus, Redis, universal social/metric schemas, cross-platform attribution, Knowledge Graph, Vector Database, Feature Store, detailed Advisor engine and detailed Growth Intelligence remain deferred.
+- Do not resume speculative universal infrastructure work without concrete capability evidence and Founder authorization.

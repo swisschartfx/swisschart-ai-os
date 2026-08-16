@@ -181,3 +181,63 @@ Original ADR evidence: `archive/decisions/18_TOP_DOWN_ARCHITECTURAL_DEFINITION_B
 - Verified exactly six active canonical Project Brain files plus the explicitly non-authoritative archive, preserved architecture boundaries, found zero broken relative imports and zero stale active runtime/config references.
 - Final P0 safety, P1 authority, P2 maintainability, cloud and schedule suites passed; `git diff --check` passed.
 - Committed the consolidated cleanup phase locally as one cohesive commit. Nothing was pushed or deployed, no production/business system was accessed or mutated, Codex 3/3 remained unstarted and Mission 10 remained stopped.
+## 2026-08-16 — Configurable Market-Session Messaging Production Completion
+
+- Completed the Configurable Market-Session Messaging Production work.
+- Finalized five Founder-approved recurring market-session Telegram messages covering London and New York session timing.
+- Combined the New York pre-close message with the Swisschart end-of-trading-day message, resulting in five weekday schedules.
+- Preserved the canonical Swisschart HTML footer in all Telegram templates:
+  `<a href="https://linktr.ee/swisschart">Swisschart Links</a>`.
+- Verified weekday filtering, IANA timezone handling and DST-aware schedule resolution.
+- Production schedule state was persisted in `/data/schedules.sqlite` on the Railway persistent Volume.
+- Railway initially selected Node 20, which did not provide the required `node:sqlite` module.
+- Raised the Node requirement to Node 22 and successfully redeployed Production.
+- Added a guarded manual Production seed utility.
+- Seeded the five approved schedules into Production initially disabled for verification.
+- Inspected the persisted schedules and verified their text, triggers, timezones and next occurrences.
+- Wired Production Cloud Runtime to the durable scheduling execution path:
+  `AutomationSchedulerBridge → SchedulerRuntime → Event Engine → Task Engine → PublishingAgentExecutor → Publishing Agent → Telegram`.
+- `test:cloud` and `test:schedules` passed after the Production Scheduler wiring.
+- Enabled `SCHEDULER_ENABLED` in Production.
+- Enabled all five market-session schedules.
+- Production inspection confirmed all five at `enabled=true`, revision `2`.
+- Railway remained Online and `/health` passed after deployment.
+
+Relevant commits:
+
+- `fcf6903` — Add configurable market session schedules
+- `6d6f09e` — Require Node 22 for SQLite runtime
+- `62f4234` — Add guarded market session seed script
+- `1a96789` — Wire production scheduler runtime
+
+## 2026-08-16 — First Founder-Created Production Schedule Through Claude
+
+- Tested Founder-configurable scheduling through the real Claude → Swisschart AI OS integration.
+- Founder requested a Sunday Telegram message five minutes before the weekly Forex market open.
+- Claude checked existing schedules and confirmed that no duplicate existed.
+- The new schedule was prepared and previewed before approval.
+- Founder reviewed and corrected message formatting, blank lines, HTML footer, timezone and trigger configuration.
+- Final schedule ID:
+  `market.weekly.forexopen_preopen_5m`.
+- Final persisted configuration:
+  - Sunday / ISO weekday `7`
+  - `session_relative`
+  - New York session open boundary
+  - offset `-5 minutes`
+  - `16:55 America/New_York`
+  - destination `telegram.primary`
+  - template revision `1`
+  - enabled `true`
+  - approval status `approved`
+  - persisted revision `1`
+- The exact approved message is:
+
+```text
+The market opens in 5 minutes
+
+A new trading week is about to begin
+Wishing all traders a focused, disciplined and successful week ahead
+
+As precise as a Swiss watch
+
+<a href="https://linktr.ee/swisschart">Swisschart Links</a>
