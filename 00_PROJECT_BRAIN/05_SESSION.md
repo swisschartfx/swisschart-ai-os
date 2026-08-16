@@ -742,8 +742,6 @@ Current position: accidental `SCT-2647` cleanup is complete. Mission 10 remains 
 
 Exact next development action: STOP and await a separately scoped Founder instruction. Do not resume Mission 10.
 
----
-
 ## Session: Mission 9 Live E2E Production Verification
 
 Date: 2026-08-16
@@ -759,3 +757,38 @@ Date: 2026-08-16
 Current position: Mission 9 is objectively production-proven. Mission 10 remains STOPPED.
 
 Exact next development action: STOP and await a separately scoped Founder instruction. Do not resume Mission 10.
+
+---
+
+## Session: Configurable Market-Session Messaging Design (Codex 1/3)
+
+Date: 2026-08-16
+
+- Audited existing AutomationManager/store, Scheduler/Runtime/Bridge, Scheduler Event Adapter, Event Engine, Task Engine, Approval Gate, Capability Gateway, Publishing Agent, Telegram Service and Cloud composition.
+- Designed a configurable weekday/session and future weekend scheduling capability that extends those components without creating a parallel system.
+- Defined independent `Europe/London` and `America/New_York` IANA occurrence resolution, New York human-display time, ISO weekday configuration, mutation prepare/approve contracts and approved recurring execution grants.
+- Determined the current JSON store and in-memory occurrence deduplication are insufficient for reliable production scheduling.
+- Selected an embedded SQLite file on the existing Railway Volume as the smallest correct transactional persistence for immutable schedule revisions, approvals, unique occurrence claims and recovery. PostgreSQL is not required.
+- Defined conservative restart/misfire/Telegram uncertainty behavior, deterministic occurrence identities and a future holiday-suppression boundary.
+- Created `17_CONFIGURABLE_MARKET_SESSION_MESSAGING_DESIGN.md` with the exact Codex 2/3 implementation scope and tests.
+
+No source code, production configuration, schedule, Scheduler state or external system changed. Mission 10 remains STOPPED.
+
+Exact next development action: STOP. If separately authorized, Codex 2/3 implements and tests the design locally with Scheduler disabled and creates no production schedules.
+
+---
+
+## Session: Configurable Market-Session Messaging Implementation (Codex 2/3)
+
+Date: 2026-08-16
+
+- Resumed the existing interrupted worktree without recreating or discarding completed work.
+- Verified the existing implementation already contained the schedule contract, Temporal/IANA resolver, injected SQLite store, Schedule Management Capability, semantic MCP operations, durable Scheduler bridge/runtime behavior, suppression boundary and Task Engine approved-schedule defense.
+- Reproduced the interrupted `test:cloud` hang. The Cloud runtime test asserted schema `4.4` after Codex 2/3 correctly advanced the local schema to `4.5`; the assertion occurred before `runtime.shutdown()`, leaving the local HTTP server alive.
+- Fixed only the Codex 2/3 regression: updated Cloud expectations for schema `4.5` and schedule request types, and expanded rather than replaced the proven exact bare Signal/سیگنال discovery contract in the tool description.
+- `npm.cmd run test:schedules`: PASS.
+- `npm.cmd run test:cloud`: PASS.
+
+Current position: Codex 2/3 is complete locally. Scheduler remains disabled by default; no initial schedule records or final Founder templates exist. No deployment, push, production `/data` access, Railway access, Notion mutation, Telegram send, production schedule, trade or external approval occurred. Mission 10 remains STOPPED.
+
+Exact next development action: STOP. Codex 3/3 requires separate Founder authorization for final templates, production configuration, preview/approval, deployment and controlled activation.

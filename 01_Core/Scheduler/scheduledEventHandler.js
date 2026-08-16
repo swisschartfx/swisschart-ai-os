@@ -57,6 +57,7 @@ function createScheduledTaskRule() {
         },
         createTaskRequest(event) {
             const payload = event.metadata.taskPayload;
+            const scheduleGrant = event.metadata.approvedScheduleGrant || null;
 
             return {
                 source: "event",
@@ -69,10 +70,13 @@ function createScheduledTaskRule() {
                 contextReferences: [event.eventId],
                 priority: payload.priority || "normal",
                 approval: {
-                    required: true,
-                    status: "pending",
-                    reason: "Scheduled automation requires explicit founder approval."
+                    required: !scheduleGrant,
+                    status: scheduleGrant ? "approved" : "pending",
+                    reason: scheduleGrant
+                        ? "Execution authorized by an approved immutable schedule revision."
+                        : "Scheduled automation requires explicit founder approval."
                 },
+                authorization: scheduleGrant,
                 idempotencyKey:
                     `scheduled-event:${event.deduplicationKey}:${event.revision}`
             };

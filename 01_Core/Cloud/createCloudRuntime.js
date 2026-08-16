@@ -46,7 +46,9 @@ function createCloudRuntime(options = {}) {
         logger,
         process: options.process,
         telegramRuntime: options.telegramRuntime,
-        schedulerRuntime: options.schedulerRuntime
+        schedulerRuntime: config.schedulerEnabled === true
+            ? options.schedulerRuntime
+            : null
     });
 }
 

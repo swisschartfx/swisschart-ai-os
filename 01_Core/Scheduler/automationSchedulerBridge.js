@@ -7,10 +7,22 @@ class AutomationSchedulerBridge {
 
         this.automationManager = options.automationManager;
         this.clock = options.clock || (() => new Date());
+        this.occurrenceStore = options.occurrenceStore || null;
+        this.occurrenceResolver = options.occurrenceResolver || null;
+        this.suppressionPolicy = options.suppressionPolicy || { evaluate() {
+            return { suppressed: false, reason: null, reference: null };
+        } };
+        this.lookbackMs = options.lookbackMs === undefined ? 5 * 60 * 1000
+            : options.lookbackMs;
     }
 
     getScheduledEvents() {
         const now = this.clock();
+
+        if (typeof this.automationManager.listSchedules === "function" &&
+            this.occurrenceStore && this.occurrenceResolver) {
+            return this.getDurableScheduleEvents(now);
+        }
 
         return this.automationManager.getAutomations({ enabled: true })
             .filter(automation =>
@@ -19,6 +31,87 @@ class AutomationSchedulerBridge {
             )
             .map(automation => toScheduledEvent(automation, now));
     }
+
+    getDurableScheduleEvents(now) {
+        const { Temporal } = require("@js-temporal/polyfill");
+        const nowInstant = Temporal.Instant.from(now.toISOString());
+        const scheduled = [];
+        for (const schedule of this.automationManager.listSchedules({ enabled: true })) {
+            if (schedule.tombstoned || !schedule.approval ||
+                schedule.approval.status !== "approved") continue;
+            const localToday = nowInstant.toZonedDateTimeISO(schedule.trigger.timezone)
+                .toPlainDate();
+            for (const delta of [-1, 0, 1]) {
+                const occurrence = this.occurrenceResolver.resolve(schedule,
+                    localToday.add({ days: delta }).toString());
+                if (!occurrence) continue;
+                const occurrenceMs = Date.parse(occurrence.resolvedInstant);
+                if (occurrenceMs < now.getTime() - this.lookbackMs ||
+                    occurrenceMs > now.getTime() + 24 * 60 * 60 * 1000) continue;
+                const suppression = this.suppressionPolicy.evaluate({ schedule,
+                    occurrence });
+                const stored = this.occurrenceStore.planOccurrence(occurrence,
+                    schedule, now.toISOString());
+                if (suppression && suppression.suppressed) {
+                    if (stored.state === "planned") this.occurrenceStore
+                        .transitionOccurrence(stored.occurrenceKey, "suppressed",
+                            { detail: suppression }, now.toISOString());
+                    continue;
+                }
+                const grace = schedule.executionPolicy.misfireGraceSeconds;
+                const lateness = now.getTime() - occurrenceMs;
+                if (lateness > 0 && (grace === null || lateness > grace * 1000)) {
+                    if (stored.state === "planned") this.occurrenceStore
+                        .transitionOccurrence(stored.occurrenceKey, "skipped",
+                            { detail: { code: "SCHEDULE_MISFIRE_SKIPPED", latenessMs: lateness } },
+                            now.toISOString());
+                    continue;
+                }
+                const latest = this.occurrenceStore.getOccurrence(stored.occurrenceKey);
+                if (latest.state !== "planned" && latest.state !== "failed_safe_to_retry") continue;
+                scheduled.push(toDurableScheduledEvent(schedule, occurrence));
+            }
+        }
+        return scheduled.sort((a, b) => Date.parse(a.executeAt) - Date.parse(b.executeAt) ||
+            a.metadata.priority - b.metadata.priority || a.name.localeCompare(b.name));
+    }
+}
+
+function toDurableScheduledEvent(schedule, occurrence) {
+    return {
+        name: schedule.scheduleId,
+        executeAt: occurrence.resolvedInstant,
+        timezone: schedule.trigger.timezone,
+        category: "scheduled_channel_message",
+        reference: occurrence.identity,
+        occurrenceKey: occurrence.occurrenceKey,
+        metadata: {
+            occurrenceKey: occurrence.occurrenceKey,
+            occurrenceIdentity: occurrence.identity,
+            priority: schedule.priority,
+            taskPayload: {
+                intent: "content.publish",
+                objective: "Publish the approved recurring Telegram schedule occurrence.",
+                capabilityRequirement: "publishing.publish",
+                input: { message: schedule.publication.template.content,
+                    destination: schedule.publication.destination, contentType: "text" },
+                priority: "normal"
+            },
+            approvedScheduleGrant: {
+                approvalBasis: "approved_schedule_revision",
+                scheduleId: schedule.scheduleId,
+                revision: schedule.revision,
+                approvalHash: schedule.approval.approvedPayloadHash,
+                occurrenceKey: occurrence.occurrenceKey,
+                occurrenceIdentity: occurrence.identity,
+                destination: schedule.publication.destination,
+                capabilityRequirement: "publishing.publish",
+                templateRevision: schedule.publication.template.revision,
+                rendererVersion: schedule.publication.rendererVersion,
+                suppressed: false
+            }
+        }
+    };
 }
 
 function toScheduledEvent(automation, now) {

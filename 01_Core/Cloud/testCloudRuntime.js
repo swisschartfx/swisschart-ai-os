@@ -150,7 +150,7 @@ async function testHttpAndMcpBoundary() {
     assert.deepStrictEqual(tools.body.result.tools.map((tool) => tool.name),
         ["swisschart.query"]);
     const tool = tools.body.result.tools[0];
-    assert(tool.description.includes("schema v4.4"));
+    assert(tool.description.includes("schema v4.5"));
     assert.strictEqual(tool.annotations, undefined);
     assert.deepStrictEqual(tool.inputSchema.properties.query.enum,
         ["trade_count", "win_rate", "performance_summary", "profit_factor",
@@ -164,7 +164,10 @@ async function testHttpAndMcpBoundary() {
     assert.deepStrictEqual(tool.inputSchema.properties.requestType.enum,
         ["query", "signal_intake_start", "signal_validate", "signal_prepare",
             "signal_approve", "signal_publish_prepare",
-            "signal_publish_approve"]);
+            "signal_publish_approve", "schedule_list", "schedule_inspect",
+            "schedule_create_prepare", "schedule_create_approve",
+            "schedule_update_prepare", "schedule_update_approve",
+            "schedule_delete_prepare", "schedule_delete_approve"]);
     const toolDescription = tool.description;
     for (const expression of ["exact standalone user message", "\"Signal\"",
         "\"سیگنال\"", "invoke swisschart.query",
@@ -173,6 +176,8 @@ async function testHttpAndMcpBoundary() {
         assert(toolDescription.includes(expression));
     }
     assert(toolDescription.includes("separate explicit Founder approvals"));
+    assert(toolDescription.includes("Schedule list/inspect are read-only"));
+    assert(toolDescription.includes("schedule mutations require separate explicit Founder approvals"));
     const requestTypeDescription =
         tool.inputSchema.properties.requestType.description;
     assert(requestTypeDescription.includes("exact standalone Founder message"));

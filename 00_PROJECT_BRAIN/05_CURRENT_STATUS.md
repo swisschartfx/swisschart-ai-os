@@ -363,6 +363,12 @@ Founder authorized removal of only the verified unintended legacy fixture. Immed
 
 Only that exact page was archived. A post-archive page re-read confirmed `archived=true` and `in_trash=true`; an exact read-only Trading Journal query returned zero active `SCT-2647` records and no active duplicate. The Founder had already manually removed the two unintended Telegram test messages. The incident is resolved. No other Notion record, Telegram message or business system was mutated. Mission 10 remains STOPPED.
 
+## Configurable Market-Session Messaging — Codex 2/3 Local Completion
+
+Codex 2/3 is implemented and verified locally: versioned approved schedules, Temporal/IANA DST resolution, injected SQLite persistence, semantic schedule management through the single MCP tool, durable occurrence claims/recovery, suppression and misfire boundaries, and Task Engine approved-schedule validation through the existing Publishing Agent path. `test:schedules` and `test:cloud` pass.
+
+Nothing was deployed or activated. Scheduler remains disabled by default; no production schedules or final message templates exist. Codex 3/3 requires separate Founder authorization. Mission 10 remains STOPPED.
+
 ## Repository Hygiene Incident — 2026-08-16
 
 During a local repository cleanup regression pass, the unreferenced legacy `01_Core/Assistant/testAssistant.js` was mistakenly executed as a unit test. The file explicitly used `testMode: false`, loaded live nested `.env` credentials and entered the legacy direct Signal execution path outside the v4.4 MCP approval boundary. Its successful runtime output reported two Telegram sends (Risk Reminder then Signal) and Notion creation of `SCT-2647` for its hard-coded GBPUSD SELL fixture. No provider message IDs or Notion page ID were returned by that script, so those external identifiers remain unverified. No rollback, deletion or compensating external mutation was attempted. The unsafe script was removed locally as an unreferenced real-execution verification artifact. Mission 10 remains stopped.

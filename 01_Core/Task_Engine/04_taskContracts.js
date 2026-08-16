@@ -48,6 +48,7 @@ function createTask(taskRequest, options = {}) {
             required: true,
             status: "pending"
         },
+        authorization: taskRequest.authorization || null,
         validation: {
             status: "pending",
             errors: []

@@ -15,6 +15,7 @@ const PublishingAgentExecutor = require("./05_publishingAgentExecutor");
 const AutomationExecutionRouter = require("./automationExecutionRouter");
 const ApprovalGate = require("../Approval_Gate/01_approvalGate");
 const FounderApprovalController = require("./founderApprovalController");
+const ScheduleOccurrenceResolver = require("../../02_Core/Time/scheduleOccurrenceResolver");
 
 class TaskEngine {
     constructor(options = {}) {
@@ -38,6 +39,9 @@ class TaskEngine {
             new AutomationExecutionRouter();
         this.automationManager = options.automationManager || null;
         this.automationOrchestrator = options.automationOrchestrator || null;
+        this.scheduleAuthorizationStore = options.scheduleAuthorizationStore || null;
+        this.scheduleOccurrenceResolver = options.scheduleOccurrenceResolver ||
+            new ScheduleOccurrenceResolver();
     }
 
     async execute(taskRequest) {
@@ -121,6 +125,11 @@ class TaskEngine {
 
     async executeApprovedTask(task) {
 
+        if (task.authorization &&
+            task.authorization.approvalBasis === "approved_schedule_revision") {
+            this.validateApprovedScheduleExecution(task);
+        }
+
         if (isScheduledAutomationTask(task)) {
             return this.executeAutomationTask(task);
         }
@@ -165,6 +174,16 @@ class TaskEngine {
         task.startedAt = attempt.startedAt;
         this.transition(task, TASK_STATUSES.RUNNING, "Executor started");
 
+        const occurrenceKey = task.authorization && task.authorization.occurrenceKey;
+        if (occurrenceKey) {
+            this.scheduleAuthorizationStore.transitionOccurrence(occurrenceKey,
+                "publishing", {}, this.now());
+            this.scheduleAuthorizationStore.createExecutionAttempt({
+                attemptId: `${occurrenceKey}:${attempt.attemptId}`,
+                occurrenceKey, state: "publishing", startedAt: this.now()
+            });
+        }
+
         try {
             const execution = await executor.execute({
                 taskId: task.taskId,
@@ -180,6 +199,17 @@ class TaskEngine {
             attempt.completedAt = this.now();
             this.transition(task, TASK_STATUSES.COMPLETED, "Executor returned a verified result");
             task.completedAt = this.now();
+
+            if (occurrenceKey) {
+                const messageId = execution.externalReferences &&
+                    execution.externalReferences[0] &&
+                    execution.externalReferences[0].messageId;
+                this.scheduleAuthorizationStore.transitionOccurrence(occurrenceKey,
+                    "completed", { messageId }, this.now());
+                this.scheduleAuthorizationStore.completeExecutionAttempt(
+                    `${occurrenceKey}:${attempt.attemptId}`, "completed",
+                    { messageId }, this.now());
+            }
 
             return this.finish(task, createResult({
                 taskId: task.taskId,
@@ -197,6 +227,15 @@ class TaskEngine {
             this.transition(task, TASK_STATUSES.FAILED, "Executor returned an error");
             task.terminalReason = error.code || "EXECUTION_FAILED";
             task.completedAt = this.now();
+
+            if (occurrenceKey) {
+                this.scheduleAuthorizationStore.transitionOccurrence(occurrenceKey,
+                    "delivery_uncertain", { detail: { code: error.code ||
+                        "TELEGRAM_DELIVERY_UNCERTAIN" } }, this.now());
+                this.scheduleAuthorizationStore.completeExecutionAttempt(
+                    `${occurrenceKey}:${attempt.attemptId}`, "delivery_uncertain",
+                    { code: error.code || "TELEGRAM_DELIVERY_UNCERTAIN" }, this.now());
+            }
 
             return this.finish(task, this.failureResult(task, attempt.attemptId, {
                 code: error.code || "EXECUTION_FAILED",
@@ -367,6 +406,38 @@ class TaskEngine {
     now() {
         return this.clock().toISOString();
     }
+
+    validateApprovedScheduleExecution(task) {
+        const grant = task.authorization;
+        const store = this.scheduleAuthorizationStore;
+        if (!store) throw scheduleAuthorizationError("SCHEDULE_AUTHORIZATION_STORE_REQUIRED");
+        const schedule = store.getSchedule(grant.scheduleId,
+            { includeTombstoned: true });
+        const occurrence = store.getOccurrence(grant.occurrenceKey);
+        let expectedOccurrence = null;
+        if (schedule && occurrence) {
+            try { expectedOccurrence = this.scheduleOccurrenceResolver.resolve(schedule,
+                occurrence.localDate); } catch (_) { expectedOccurrence = null; }
+        }
+        const valid = schedule && occurrence && schedule.enabled && !schedule.tombstoned &&
+            schedule.revision === grant.revision &&
+            schedule.approval.approvedPayloadHash === grant.approvalHash &&
+            occurrence.approvalHash === grant.approvalHash &&
+            occurrence.identity === grant.occurrenceIdentity &&
+            expectedOccurrence && expectedOccurrence.occurrenceKey === occurrence.occurrenceKey &&
+            expectedOccurrence.identity === occurrence.identity &&
+            expectedOccurrence.resolvedInstant === occurrence.resolvedInstant &&
+            occurrence.revision === grant.revision &&
+            occurrence.state === "claimed" && grant.suppressed !== true &&
+            grant.destination === "telegram.primary" &&
+            task.input.destination === "telegram.primary" &&
+            task.input.message === schedule.publication.template.content &&
+            grant.capabilityRequirement === "publishing.publish" &&
+            task.capabilityRequirement === "publishing.publish" &&
+            schedule.publication.template.revision === grant.templateRevision &&
+            schedule.publication.rendererVersion === grant.rendererVersion;
+        if (!valid) throw scheduleAuthorizationError("SCHEDULE_EXECUTION_NOT_AUTHORIZED");
+    }
 }
 
 function isScheduledAutomationTask(task) {
@@ -376,3 +447,7 @@ function isScheduledAutomationTask(task) {
 }
 
 module.exports = TaskEngine;
+
+function scheduleAuthorizationError(code) {
+    const error = new Error(code); error.code = code; return error;
+}

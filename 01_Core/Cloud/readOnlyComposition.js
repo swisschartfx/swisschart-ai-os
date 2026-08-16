@@ -19,7 +19,8 @@ function createReadOnlyComposition(options = {}) {
         new TradingAnalyticsCapability({ tradingDataCapability }),
         new GeneralTradingAnalysisCapability({ tradingDataCapability }),
         ...(options.enableSignalMutation ? [options.notionSignalCapability || new NotionSignalCapability()] : []),
-        ...(options.enableTelegramSignal ? [options.telegramSignalCapability || new TelegramSignalCapability({ publisher: options.publisher })] : [])
+        ...(options.enableTelegramSignal ? [options.telegramSignalCapability || new TelegramSignalCapability({ publisher: options.publisher })] : []),
+        ...(options.scheduleManagementCapability ? [options.scheduleManagementCapability] : [])
     ];
     const capabilityRegistry = options.capabilityRegistry ||
         new CapabilityRegistry(capabilities);

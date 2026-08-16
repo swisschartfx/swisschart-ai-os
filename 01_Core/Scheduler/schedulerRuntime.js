@@ -33,6 +33,7 @@ class SchedulerRuntime {
         this.setInterval = options.setInterval || setInterval;
         this.clearInterval = options.clearInterval || clearInterval;
         this.processedOccurrences = new Set();
+        this.occurrenceStore = options.occurrenceStore || null;
         this.timer = null;
         this.tickPromise = null;
     }
@@ -42,6 +43,13 @@ class SchedulerRuntime {
             return false;
         }
 
+        if (this.occurrenceStore &&
+            typeof this.occurrenceStore.recoverClaimedBeforePublishing === "function") {
+            if (typeof this.occurrenceStore.recoverInterruptedPublishing === "function") {
+                this.occurrenceStore.recoverInterruptedPublishing(this.clock().toISOString());
+            }
+            this.occurrenceStore.recoverClaimedBeforePublishing(this.clock().toISOString());
+        }
         this.timer = this.setInterval(() => {
             this.tick().catch(error => {
                 console.error("Scheduler runtime tick failed", error);
@@ -91,13 +99,32 @@ class SchedulerRuntime {
                 continue;
             }
 
-            const evaluated = await this.eventHandler.handle(
-                this.eventAdapter.adapt(scheduledEvent),
-                now
-            );
-
-            this.processedOccurrences.add(occurrenceKey);
-            results.push(evaluated);
+            let durableClaim = null;
+            if (this.occurrenceStore && scheduledEvent.metadata &&
+                scheduledEvent.metadata.occurrenceKey) {
+                durableClaim = this.occurrenceStore.claimOccurrence(
+                    scheduledEvent.metadata.occurrenceKey, now.toISOString());
+                if (!durableClaim.claimed) continue;
+            }
+            try {
+                const evaluated = await this.eventHandler.handle(
+                    this.eventAdapter.adapt(scheduledEvent), now);
+                this.processedOccurrences.add(occurrenceKey);
+                results.push(evaluated);
+            } catch (error) {
+                if (durableClaim) {
+                    const current = this.occurrenceStore.getOccurrence(
+                        scheduledEvent.metadata.occurrenceKey);
+                    if (current && current.state === "claimed") {
+                        this.occurrenceStore.transitionOccurrence(current.occurrenceKey,
+                            "failed_safe_to_retry", { detail: { code: error.code ||
+                                "SCHEDULE_EXECUTION_FAILED_BEFORE_PUBLISH" } }, now.toISOString());
+                    }
+                }
+                results.push({ error: { code: error.code || "SCHEDULE_RUNTIME_FAILED" },
+                    occurrenceKey: scheduledEvent.metadata &&
+                        scheduledEvent.metadata.occurrenceKey });
+            }
         }
 
         return results;

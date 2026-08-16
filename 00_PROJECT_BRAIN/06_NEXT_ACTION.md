@@ -210,3 +210,13 @@ No continuation is authorized by this cleanup. Mission 10 remains STOPPED. Await
 The live Founder Claude→Signal intake→Notion prepare/approve/write→separate Telegram prepare/approve/publish flow is production-proven for `SCT-2647`. Exactly one active Notion record and one canonical two-message Telegram bundle execution were verified from authoritative production evidence. No duplicate, `SCT-2648`, approval bypass, Scheduler involvement or legacy-script involvement was found.
 
 Mission 9 completion does not authorize Mission 10. Mission 10 remains STOPPED. Await a separately scoped Founder instruction.
+
+---
+
+# Configurable Market-Session Messaging — Codex 2/3 Complete Locally
+
+Architecture/design and local implementation are recorded in `17_CONFIGURABLE_MARKET_SESSION_MESSAGING_DESIGN.md`. The implementation extends AutomationManager, SchedulerRuntime/Bridge, Event/Task infrastructure, Capability Gateway and the sole Publishing Agent/Telegram path. It uses independently resolved IANA session times, approved versioned schedule rules, injected SQLite persistence and a durable occurrence ledger.
+
+Codex 2/3 local schedule and Cloud regression suites pass. Scheduler remains disabled by default and no initial schedules or production templates exist. No production activation is authorized. Mission 10 remains STOPPED.
+
+Next action only if separately authorized: Codex 3/3 final Founder templates, production configuration, preview/approval, deployment and controlled activation. Do not start automatically.

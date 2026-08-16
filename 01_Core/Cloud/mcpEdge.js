@@ -4,7 +4,7 @@ const { PeriodResolver, BUSINESS_TIMEZONE, PRESETS } = require(
 );
 
 const TOOL_NAME = "swisschart.query";
-const TOOL_SCHEMA_VERSION = "4.4";
+const TOOL_SCHEMA_VERSION = "4.5";
 const FOUNDER_SIGNAL_ROUTING_INSTRUCTIONS =
     "In the Swisschart Founder interface, an exact user message of \"Signal\" " +
     "or \"سیگنال\" means start a new Swisschart trading signal intake. " +
@@ -120,6 +120,32 @@ class McpEdge {
                 return rpcResult(message.id, toolError(error.code || "Telegram signal action rejected"));
             }
         }
+        if (SCHEDULE_REQUESTS.has(params.arguments.requestType)) {
+            const scheduleRequest = normalizeScheduleRequest(params.arguments);
+            try {
+                const result = await this.assistant.handle({
+                    type: "capability", requestId,
+                    capability: "schedule.management",
+                    operation: scheduleRequest.operation,
+                    input: scheduleRequest.input,
+                    context: { authenticatedFounder: true },
+                    constraints: { schedulerActivationAllowed: false },
+                    metadata: { transport: "remote_mcp" },
+                    requestedBy: "founder", source: "claude-remote-mcp",
+                    inputContractVersion: "1.0"
+                });
+                const success = result && result.status !== "failed";
+                this.log("mcp_schedule_action", { requestId,
+                    outcome: success ? result.status : "failed",
+                    requestType: params.arguments.requestType });
+                return rpcResult(message.id, { content: [{ type: "text",
+                    text: JSON.stringify(result) }], isError: !success });
+            } catch (error) {
+                this.log("mcp_schedule_action", { requestId, outcome: "failed",
+                    requestType: params.arguments.requestType });
+                return rpcResult(message.id, toolError("Schedule action failed safely"));
+            }
+        }
         let normalizedInput;
         try {
             normalizedInput = normalizeBusinessQuery(params.arguments,
@@ -194,7 +220,7 @@ function authorizeReadOnly(input) {
 function toolDefinition() {
     return {
         name: TOOL_NAME,
-        description: "Swisschart business interface schema v4.4. Use for authoritative Trading Journal analytics and the Founder's trading-signal workflow. In this Founder interface, the exact standalone user message \"Signal\" or \"سیگنال\" unambiguously means start a new Swisschart trading signal intake: invoke swisschart.query with requestType=signal_intake_start immediately and do not ask what kind of signal is meant. This exact-command rule does not apply to unrelated phrases containing signal. Swisschart remains authoritative for validation, calculations, approvals, Notion creation, and Telegram publication. Notion creation and Telegram publication require separate explicit Founder approvals.",
+        description: "Swisschart business interface schema v4.5. Use for authoritative Trading Journal analytics, the Founder's trading-signal workflow, and configurable schedule management. In this Founder interface, the exact standalone user message \"Signal\" or \"سیگنال\" unambiguously means start a new Swisschart trading signal intake: invoke swisschart.query with requestType=signal_intake_start immediately and do not ask what kind of signal is meant. This exact-command rule does not apply to unrelated phrases containing signal. Schedule list/inspect are read-only. Every schedule create, update, enable, disable, or delete uses separate prepare and explicit approve calls. Swisschart remains authoritative for validation, calculations, approvals, Notion creation, Telegram publication, and deterministic scheduling. Notion creation, Telegram publication, and schedule mutations require separate explicit Founder approvals.",
         inputSchema: {
             type: "object",
             additionalProperties: false,
@@ -203,7 +229,11 @@ function toolDefinition() {
                     type: "string",
                     enum: ["query", "signal_intake_start", "signal_validate",
                         "signal_prepare", "signal_approve",
-                        "signal_publish_prepare", "signal_publish_approve"],
+                        "signal_publish_prepare", "signal_publish_approve",
+                        "schedule_list", "schedule_inspect",
+                        "schedule_create_prepare", "schedule_create_approve",
+                        "schedule_update_prepare", "schedule_update_approve",
+                        "schedule_delete_prepare", "schedule_delete_approve"],
                     description: "For the exact standalone Founder message Signal or سیگنال, select signal_intake_start immediately without clarification. Use signal_validate for Founder-supplied snapshots. Preparation and approval requestTypes remain separate backend-controlled actions."
                 },
                 query: {
@@ -216,7 +246,12 @@ function toolDefinition() {
                     pattern: "^SCT-\\d{2}(0[1-9]|[1-9]\\d)$" },
                 approvalId: { type: "string" },
                 payloadHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
-                confirm: { type: "boolean" }
+                confirm: { type: "boolean" },
+                scheduleId: { type: "string" },
+                expectedRevision: { type: "integer", minimum: 1 },
+                schedule: { type: "object", additionalProperties: true },
+                updates: { type: "object", additionalProperties: true },
+                filters: { type: "object", additionalProperties: true }
             },
             anyOf: [
                 { required: ["query", "period"] },
@@ -230,10 +265,52 @@ function toolDefinition() {
                     "signal_publish_approve"] } }, required: ["requestType",
                     "approvalId", "payloadHash", "confirm"] },
                 { properties: { requestType: { const: "signal_publish_prepare" } },
-                    required: ["requestType", "signalReference", "signal"] }
+                    required: ["requestType", "signalReference", "signal"] },
+                { properties: { requestType: { const: "schedule_list" } },
+                    required: ["requestType"] },
+                { properties: { requestType: { const: "schedule_inspect" } },
+                    required: ["requestType", "scheduleId"] },
+                { properties: { requestType: { const: "schedule_create_prepare" } },
+                    required: ["requestType", "schedule"] },
+                { properties: { requestType: { const: "schedule_update_prepare" } },
+                    required: ["requestType", "scheduleId", "expectedRevision", "updates"] },
+                { properties: { requestType: { const: "schedule_delete_prepare" } },
+                    required: ["requestType", "scheduleId", "expectedRevision"] },
+                { properties: { requestType: { enum: ["schedule_create_approve",
+                    "schedule_update_approve", "schedule_delete_approve"] } },
+                    required: ["requestType", "approvalId", "payloadHash", "confirm"] }
             ]
         }
     };
+}
+
+const SCHEDULE_REQUESTS = new Set([
+    "schedule_list", "schedule_inspect", "schedule_create_prepare",
+    "schedule_create_approve", "schedule_update_prepare",
+    "schedule_update_approve", "schedule_delete_prepare",
+    "schedule_delete_approve"
+]);
+
+function normalizeScheduleRequest(input) {
+    const operations = {
+        schedule_list: "schedule.list", schedule_inspect: "schedule.inspect",
+        schedule_create_prepare: "schedule.create.prepare",
+        schedule_create_approve: "schedule.create.approve",
+        schedule_update_prepare: "schedule.update.prepare",
+        schedule_update_approve: "schedule.update.approve",
+        schedule_delete_prepare: "schedule.delete.prepare",
+        schedule_delete_approve: "schedule.delete.approve"
+    };
+    return { operation: operations[input.requestType], input: {
+        ...(input.filters ? { filters: input.filters } : {}),
+        ...(input.scheduleId ? { scheduleId: input.scheduleId } : {}),
+        ...(input.expectedRevision ? { expectedRevision: input.expectedRevision } : {}),
+        ...(input.schedule ? { schedule: input.schedule } : {}),
+        ...(input.updates ? { updates: input.updates } : {}),
+        ...(input.approvalId ? { approvalId: input.approvalId } : {}),
+        ...(input.payloadHash ? { payloadHash: input.payloadHash } : {}),
+        ...(input.confirm !== undefined ? { confirm: input.confirm } : {})
+    } };
 }
 
 function periodSchema() {
