@@ -97,6 +97,13 @@ function toDurableScheduledEvent(schedule, occurrence) {
                     destination: schedule.publication.destination, contentType: "text" },
                 priority: "normal"
             },
+            publicationRender: {
+                rendererVersion: schedule.publication.rendererVersion,
+                templateId: schedule.publication.template.templateId,
+                templateRevision: schedule.publication.template.revision,
+                displayTimezone: schedule.publication.displayTimezone,
+                baseContent: schedule.publication.template.content
+            },
             approvedScheduleGrant: {
                 approvalBasis: "approved_schedule_revision",
                 scheduleId: schedule.scheduleId,

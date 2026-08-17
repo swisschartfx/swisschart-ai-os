@@ -38,6 +38,11 @@
     },
     "marketHolidayAlerts": {
       "enabled": true
-    }
+    },
+    "currencies": [
+      "USD",
+      "GBP",
+      "EUR"
+    ]
   }
 }

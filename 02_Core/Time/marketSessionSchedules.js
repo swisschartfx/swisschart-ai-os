@@ -18,7 +18,7 @@ function sessionTrigger(sessionId, boundary, offsetMinutes) {
     };
 }
 
-function publication(templateId, content) {
+function publication(templateId, content, rendererVersion = "1.0") {
     return {
         destination: "telegram.primary",
         template: {
@@ -27,7 +27,7 @@ function publication(templateId, content) {
             content
         },
         displayTimezone: "America/New_York",
-        rendererVersion: "1.0"
+        rendererVersion
     };
 }
 
@@ -57,7 +57,8 @@ Stay focused and wait for clean setups
 
 As precise as a Swiss watch
 
-<a href="https://linktr.ee/swisschart">Swisschart Links</a>`
+<a href="https://linktr.ee/swisschart">Swisschart Links</a>`,
+                "morning-calendar.v1"
             ),
             executionPolicy: executionPolicy(),
             priority: 100

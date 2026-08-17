@@ -6,9 +6,14 @@ class ForexFactoryEventAdapter {
 
         const title = rawEvent.title || rawEvent.event;
         const currency = rawEvent.currency || rawEvent.country || null;
-        const scheduledAt = rawEvent.scheduledAt || rawEvent.datetime ||
+        const sourceTimestamp = rawEvent.scheduledAt || rawEvent.datetime || rawEvent.date ||
             context.scheduledAt || null;
+        const scheduledAt = normalizeTimestamp(sourceTimestamp);
         const sourceEventId = rawEvent.id || rawEvent.eventId || null;
+        const isBankHoliday = detectBankHoliday(rawEvent);
+        const allDay = rawEvent.allDay === true || isBankHoliday;
+        const sourceTimezone = rawEvent.timezone || context.timezone ||
+            extractOffset(sourceTimestamp) || "UTC";
         const deduplicationKey = sourceEventId
             ? `forex-factory:${sourceEventId}`
             : `forex-factory:${currency || "unknown"}:${title || "unknown"}:${scheduledAt || "unknown"}`;
@@ -24,13 +29,18 @@ class ForexFactoryEventAdapter {
                 sourceRetrievedAt: context.retrievedAt || new Date().toISOString()
             },
             title,
-            category: rawEvent.category || "economic_release",
+            category: rawEvent.category ||
+                (isBankHoliday ? "bank_holiday" : "economic_release"),
             country: rawEvent.country || null,
             currency,
             impact: normalizeImpact(rawEvent.impact),
             tags: rawEvent.tags || [],
             scheduledAt,
-            sourceTimezone: rawEvent.timezone || context.timezone || "UTC",
+            sourceTimezone,
+            sourceTimestamp: sourceTimestamp || null,
+            localDate: scheduledAt ? localDateFromTimestamp(sourceTimestamp, scheduledAt) : null,
+            allDay,
+            isBankHoliday,
             releaseObservedAt: rawEvent.releasedAt || null,
             release: {
                 actual: valueOrNull(rawEvent.actual),
@@ -42,7 +52,8 @@ class ForexFactoryEventAdapter {
             dataStatus: "partial",
             rawPayloadReference: context.rawPayloadReference || null,
             metadata: {
-                providerImpact: rawEvent.impact || null
+                providerImpact: rawEvent.impact || null,
+                providerActualAvailable: valueOrNull(rawEvent.actual) !== null
             }
         };
     }
@@ -64,6 +75,35 @@ function normalizeImpact(impact) {
     }
 
     return "unknown";
+}
+
+function detectBankHoliday(rawEvent) {
+    if (rawEvent.bankHoliday === true) return true;
+    const title = String(rawEvent.title || rawEvent.event || "").trim();
+    return /\bbank holiday\b/i.test(title);
+}
+
+function normalizeTimestamp(value) {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        const error = new Error("Forex Factory event timestamp is invalid");
+        error.code = "FOREX_FACTORY_TIMESTAMP_INVALID";
+        throw error;
+    }
+    return parsed.toISOString();
+}
+
+function extractOffset(value) {
+    const match = String(value || "").match(/([+-]\d{2}:\d{2}|Z)$/i);
+    return match ? match[1].toUpperCase() : null;
+}
+
+function localDateFromTimestamp(sourceTimestamp, normalizedTimestamp) {
+    const source = String(sourceTimestamp || "");
+    const match = source.match(/^(\d{4}-\d{2}-\d{2})T/);
+    if (match) return match[1];
+    return normalizedTimestamp.slice(0, 10);
 }
 
 function valueOrNull(value) {

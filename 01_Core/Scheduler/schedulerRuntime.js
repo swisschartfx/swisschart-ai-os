@@ -25,6 +25,8 @@ class SchedulerRuntime {
                 : [];
         });
         this.eventAdapter = options.eventAdapter || new SchedulerEventAdapter();
+        this.scheduledEventPublicationRenderer =
+            options.scheduledEventPublicationRenderer || null;
         this.eventHandler = options.eventHandler || new ScheduledEventHandler({
             eventEngine: this.eventEngine
         });
@@ -107,8 +109,11 @@ class SchedulerRuntime {
                 if (!durableClaim.claimed) continue;
             }
             try {
+                const executableEvent = this.scheduledEventPublicationRenderer
+                    ? await this.scheduledEventPublicationRenderer.render(scheduledEvent)
+                    : scheduledEvent;
                 const evaluated = await this.eventHandler.handle(
-                    this.eventAdapter.adapt(scheduledEvent), now);
+                    this.eventAdapter.adapt(executableEvent), now);
                 if (durableClaim) {
                     const current = this.occurrenceStore.getOccurrence(
                         scheduledEvent.metadata.occurrenceKey);

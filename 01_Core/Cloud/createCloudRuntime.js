@@ -127,6 +127,8 @@ function createCloudRuntime(options = {}) {
     });
 }
 
+const ScheduledEventPublicationRenderer = require("../Scheduler/scheduledEventPublicationRenderer");
+
 function createProductionSchedulerRuntime(options = {}) {
     const composition = options.composition;
 
@@ -170,9 +172,14 @@ function createProductionSchedulerRuntime(options = {}) {
         ...(options.clock ? { clock: options.clock } : {})
     });
 
+    const scheduledEventPublicationRenderer = new ScheduledEventPublicationRenderer({
+        capabilityGateway: composition.capabilityGateway
+    });
+
     return new SchedulerRuntime({
         eventEngine,
         automationSchedulerBridge,
+        scheduledEventPublicationRenderer,
         occurrenceStore: composition.scheduleStore,
         ...(options.clock ? { clock: options.clock } : {})
     });

@@ -11,6 +11,7 @@ const GeneralTradingAnalysisCapability = require(
 const NotionSignalCapability = require("../../02_Core/Capabilities/notionSignalCapability");
 const TelegramSignalCapability = require("../../02_Core/Capabilities/telegramSignalCapability");
 const ScheduleManagementCapability = require("../../02_Core/Capabilities/scheduleManagementCapability");
+const MarketCalendarCapability = require("../../02_Core/Capabilities/marketCalendarCapability");
 const AutomationManager = require("../Automation_Manager/automationManager");
 const SqliteAutomationStore = require("../Automation_Manager/sqliteAutomationStore");
 
@@ -40,6 +41,7 @@ function createCloudComposition(options = {}) {
         new GeneralTradingAnalysisCapability({ tradingDataCapability }),
         ...(options.enableSignalMutation ? [options.notionSignalCapability || new NotionSignalCapability()] : []),
         ...(options.enableTelegramSignal ? [options.telegramSignalCapability || new TelegramSignalCapability({ publisher: options.publisher, tradingDataCapability })] : []),
+        options.marketCalendarCapability || new MarketCalendarCapability(),
         ...(scheduleManagementCapability ? [scheduleManagementCapability] : [])
     ];
     const capabilityRegistry = options.capabilityRegistry ||

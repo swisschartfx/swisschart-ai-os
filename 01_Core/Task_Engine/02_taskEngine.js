@@ -1,4 +1,8 @@
 const {
+    MORNING_CALENDAR_RENDERER_VERSION,
+    renderMorningMessage
+} = require("../../02_Core/Time/morningMessageRenderer");
+const {
     TASK_STATUSES,
     RESULT_STATUSES,
     createTask,
@@ -431,7 +435,7 @@ class TaskEngine {
             occurrence.state === "claimed" && grant.suppressed !== true &&
             grant.destination === "telegram.primary" &&
             task.input.destination === "telegram.primary" &&
-            task.input.message === schedule.publication.template.content &&
+            validateScheduledMessage(task, schedule, grant) &&
             grant.capabilityRequirement === "publishing.publish" &&
             task.capabilityRequirement === "publishing.publish" &&
             schedule.publication.template.revision === grant.templateRevision &&
@@ -444,6 +448,21 @@ function isScheduledAutomationTask(task) {
     return task.source === "event" &&
         task.createdBy === "scheduler-runtime" &&
         task.capabilityRequirement === "automation_workflow";
+}
+
+function validateScheduledMessage(task, schedule, grant) {
+    if (schedule.publication.rendererVersion === MORNING_CALENDAR_RENDERER_VERSION) {
+        if (!grant.renderContext || typeof grant.renderContext !== "object") return false;
+        try {
+            return task.input.message === renderMorningMessage(
+                schedule.publication.template.content,
+                grant.renderContext
+            );
+        } catch (_) {
+            return false;
+        }
+    }
+    return task.input.message === schedule.publication.template.content;
 }
 
 module.exports = TaskEngine;
