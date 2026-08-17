@@ -1,4 +1,4 @@
-const { loadCloudConfig } = require("./cloudConfig");
+﻿const { loadCloudConfig } = require("./cloudConfig");
 const { createStructuredLogger } = require("./structuredLogger");
 const { createCloudComposition } = require("./cloudComposition");
 const { McpEdge } = require("./mcpEdge");
@@ -9,6 +9,7 @@ const OAuthStateStore = require("./oauthStateStore");
 const SignalActionStore = require("./signalActionStore");
 const SignalMutationCoordinator = require("./signalMutationCoordinator");
 const TelegramPublishCoordinator = require("./telegramPublishCoordinator");
+const GenericTelegramPublishCoordinator = require("./genericTelegramPublishCoordinator");
 
 const PublishingAgent = require(
     "../../02_Agents/02_Publishing_Agent/publishingAgent"
@@ -45,10 +46,25 @@ function createCloudRuntime(options = {}) {
     const logger = options.logger || createStructuredLogger();
     const publisher = options.publisher || new PublishingAgent();
 
+    const genericPublishingTaskEngine = options.genericPublishingTaskEngine ||
+        new TaskEngine({
+            executors: {
+                "publishing-agent": new PublishingAgentExecutor({
+                    publisherFactory: () => publisher
+                })
+            },
+            ...(options.clock ? { clock: options.clock } : {})
+        });
+
+    const genericPublishingRuleResolver =
+        options.genericPublishingRuleResolver || new RuleResolver();
+
     const composition = options.composition || createCloudComposition({
         enableSignalMutation: true,
         enableTelegramSignal: true,
         publisher,
+        telegramPublishingTaskEngine: genericPublishingTaskEngine,
+        ruleResolver: genericPublishingRuleResolver,
         scheduleDatabasePath:
             options.scheduleDatabasePath || config.scheduleDatabaseFile
     });
@@ -91,6 +107,22 @@ function createCloudRuntime(options = {}) {
             destinationId: config.telegramChatId
         });
 
+    const genericTelegramStore = options.genericTelegramStore ||
+        new SignalActionStore({
+            filePath: path.join(
+                path.dirname(config.oauthStateFile),
+                "generic-telegram-actions.json"
+            )
+        });
+
+    const genericTelegramCoordinator = options.genericTelegramCoordinator ||
+        new GenericTelegramPublishCoordinator({
+            assistant: composition.assistant,
+            taskEngine: genericPublishingTaskEngine,
+            store: genericTelegramStore,
+            clock: options.clock
+        });
+
     const edge = options.edge || new McpEdge({
         assistant: composition.assistant,
         bearerToken: config.bearerToken,
@@ -98,7 +130,8 @@ function createCloudRuntime(options = {}) {
             oauthBridge.validateAccessToken(token),
         logger,
         signalCoordinator,
-        telegramCoordinator
+        telegramCoordinator,
+        genericTelegramCoordinator
     });
 
     const server = options.server || createHttpServer({

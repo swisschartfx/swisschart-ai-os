@@ -1,4 +1,4 @@
-const SwisschartAssistant = require("../Assistant/01_assistant");
+﻿const SwisschartAssistant = require("../Assistant/01_assistant");
 const CapabilityRegistry = require("../../02_Core/Capabilities/capabilityRegistry");
 const CapabilityGateway = require("../../02_Core/Capabilities/capabilityGateway");
 const TradingDataCapability = require("../../02_Core/Capabilities/tradingDataCapability");
@@ -12,6 +12,7 @@ const NotionSignalCapability = require("../../02_Core/Capabilities/notionSignalC
 const TelegramSignalCapability = require("../../02_Core/Capabilities/telegramSignalCapability");
 const ScheduleManagementCapability = require("../../02_Core/Capabilities/scheduleManagementCapability");
 const MarketCalendarCapability = require("../../02_Core/Capabilities/marketCalendarCapability");
+const TelegramPublishingCapability = require("../../02_Core/Capabilities/telegramPublishingCapability");
 const AutomationManager = require("../Automation_Manager/automationManager");
 const SqliteAutomationStore = require("../Automation_Manager/sqliteAutomationStore");
 
@@ -42,6 +43,12 @@ function createCloudComposition(options = {}) {
         ...(options.enableSignalMutation ? [options.notionSignalCapability || new NotionSignalCapability()] : []),
         ...(options.enableTelegramSignal ? [options.telegramSignalCapability || new TelegramSignalCapability({ publisher: options.publisher, tradingDataCapability })] : []),
         options.marketCalendarCapability || new MarketCalendarCapability(),
+        ...(options.telegramPublishingTaskEngine
+            ? [options.telegramPublishingCapability || new TelegramPublishingCapability({
+                taskEngine: options.telegramPublishingTaskEngine,
+                ruleResolver: options.ruleResolver
+            })]
+            : []),
         ...(scheduleManagementCapability ? [scheduleManagementCapability] : [])
     ];
     const capabilityRegistry = options.capabilityRegistry ||

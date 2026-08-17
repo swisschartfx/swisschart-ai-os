@@ -164,7 +164,8 @@ async function testHttpAndMcpBoundary() {
     assert.deepStrictEqual(tool.inputSchema.properties.requestType.enum,
         ["query", "signal_intake_start", "signal_validate", "signal_prepare",
             "signal_approve", "signal_publish_prepare",
-            "signal_publish_approve", "schedule_list", "schedule_inspect",
+            "signal_publish_approve", "telegram_publish_prepare",
+            "telegram_publish_approve", "schedule_list", "schedule_inspect",
             "schedule_create_prepare", "schedule_create_approve",
             "schedule_update_prepare", "schedule_update_approve",
             "schedule_delete_prepare", "schedule_delete_approve"]);

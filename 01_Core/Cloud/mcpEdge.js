@@ -4,7 +4,7 @@ const { PeriodResolver, BUSINESS_TIMEZONE, PRESETS } = require(
 );
 
 const TOOL_NAME = "swisschart.query";
-const TOOL_SCHEMA_VERSION = "4.5";
+const TOOL_SCHEMA_VERSION = "4.6";
 const FOUNDER_SIGNAL_ROUTING_INSTRUCTIONS =
     "In the Swisschart Founder interface, an exact user message of \"Signal\" " +
     "or \"سیگنال\" means start a new Swisschart trading signal intake. " +
@@ -52,6 +52,7 @@ class McpEdge {
         this.logger = options.logger;
         this.signalCoordinator = options.signalCoordinator || null;
         this.telegramCoordinator = options.telegramCoordinator || null;
+        this.genericTelegramCoordinator = options.genericTelegramCoordinator || null;
     }
 
     authenticate(header) {
@@ -120,6 +121,26 @@ class McpEdge {
                 return rpcResult(message.id, toolError(error.code || "Telegram signal action rejected"));
             }
         }
+        if (["telegram_publish_prepare", "telegram_publish_approve"].includes(params.arguments.requestType)) {
+            if (!this.genericTelegramCoordinator) {
+                return rpcResult(message.id, toolError("Generic Telegram publishing is unavailable"));
+            }
+            try {
+                const result =
+                    params.arguments.requestType === "telegram_publish_prepare"
+                        ? await this.genericTelegramCoordinator.prepare(params.arguments, requestId)
+                        : await this.genericTelegramCoordinator.approve(params.arguments);
+
+                return rpcResult(message.id, {
+                    content: [{ type: "text", text: JSON.stringify(result) }],
+                    isError: false
+                });
+            } catch (error) {
+                return rpcResult(message.id,
+                    toolError(error.code || "Generic Telegram action rejected"));
+            }
+        }
+
         if (SCHEDULE_REQUESTS.has(params.arguments.requestType)) {
             const scheduleRequest = normalizeScheduleRequest(params.arguments);
             try {
@@ -222,7 +243,7 @@ function authorizeReadOnly(input) {
 function toolDefinition() {
     return {
         name: TOOL_NAME,
-        description: "Swisschart business interface schema v4.5. Use for authoritative Trading Journal analytics, the Founder's trading-signal workflow, and configurable schedule management. In this Founder interface, the exact standalone user message \"Signal\" or \"سیگنال\" unambiguously means start a new Swisschart trading signal intake: invoke swisschart.query with requestType=signal_intake_start immediately and do not ask what kind of signal is meant. This exact-command rule does not apply to unrelated phrases containing signal. Schedule list/inspect are read-only. Every schedule create, update, enable, disable, or delete uses separate prepare and explicit approve calls. Swisschart remains authoritative for validation, calculations, approvals, Notion creation, Telegram publication, and deterministic scheduling. Notion creation, Telegram publication, and schedule mutations require separate explicit Founder approvals.",
+        description: "Swisschart business interface schema v4.5. Use for authoritative Trading Journal analytics, the Founder's trading-signal workflow, generic Telegram publishing, and configurable schedule management. For ordinary text publishing to the primary Telegram channel, use requestType=telegram_publish_prepare and require a separate explicit approval with telegram_publish_approve. Do not use the signal workflow unless the content is a trading signal. In this Founder interface, the exact standalone user message \"Signal\" or \"سیگنال\" unambiguously means start a new Swisschart trading signal intake: invoke swisschart.query with requestType=signal_intake_start immediately and do not ask what kind of signal is meant. This exact-command rule does not apply to unrelated phrases containing signal. Schedule list/inspect are read-only. Every schedule create, update, enable, disable, or delete uses separate prepare and explicit approve calls. Swisschart remains authoritative for validation, calculations, approvals, Notion creation, Telegram publication, and deterministic scheduling. Notion creation, Telegram publication, and schedule mutations require separate explicit Founder approvals.",
         inputSchema: {
             type: "object",
             additionalProperties: false,
@@ -232,11 +253,12 @@ function toolDefinition() {
                     enum: ["query", "signal_intake_start", "signal_validate",
                         "signal_prepare", "signal_approve",
                         "signal_publish_prepare", "signal_publish_approve",
+                        "telegram_publish_prepare", "telegram_publish_approve",
                         "schedule_list", "schedule_inspect",
                         "schedule_create_prepare", "schedule_create_approve",
                         "schedule_update_prepare", "schedule_update_approve",
                         "schedule_delete_prepare", "schedule_delete_approve"],
-                    description: "For the exact standalone Founder message Signal or سیگنال, select signal_intake_start immediately without clarification. Use signal_validate for Founder-supplied snapshots. Preparation and approval requestTypes remain separate backend-controlled actions."
+                    description: "For the exact standalone Founder message Signal or سیگنال, select signal_intake_start immediately without clarification. Use signal_validate for Founder-supplied snapshots. For ordinary Telegram text publishing, select telegram_publish_prepare; after explicit Founder approval use telegram_publish_approve. Never use the signal publishing flow unless the content is a trading signal. Preparation and approval requestTypes remain separate backend-controlled actions."
                 },
                 query: {
                     type: "string", enum: BUSINESS_QUERIES,
@@ -246,6 +268,11 @@ function toolDefinition() {
                 signal: signalSchema(),
                 signalReference: { type: "string",
                     pattern: "^SCT-\\d{2}(0[1-9]|[1-9]\\d)$" },
+                content: { type: "string", minLength: 1 },
+                content_type: { type: "string", enum: ["text"] },
+                destination: { type: "string", enum: ["telegram.primary"] },
+                format: { type: "string", enum: ["HTML"] },
+                metadata: { type: "object", additionalProperties: true },
                 approvalId: { type: "string" },
                 payloadHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
                 confirm: { type: "boolean" },
@@ -268,6 +295,10 @@ function toolDefinition() {
                     "approvalId", "payloadHash", "confirm"] },
                 { properties: { requestType: { const: "signal_publish_prepare" } },
                     required: ["requestType", "signalReference", "signal"] },
+                { properties: { requestType: { const: "telegram_publish_prepare" } },
+                    required: ["requestType", "content"] },
+                { properties: { requestType: { const: "telegram_publish_approve" } },
+                    required: ["requestType", "approvalId", "payloadHash", "confirm"] },
                 { properties: { requestType: { const: "schedule_list" } },
                     required: ["requestType"] },
                 { properties: { requestType: { const: "schedule_inspect" } },
